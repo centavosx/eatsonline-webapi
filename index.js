@@ -40,7 +40,10 @@ app.use(function(req, res, next) {
         }
     
     
-         
+        app.get("/", (req,res)=>{
+            res.send("Hellow");
+        })  
+      
 const con = mysql.createConnection({
     host: "localhost",
     user: "root",
