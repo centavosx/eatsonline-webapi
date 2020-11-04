@@ -45,10 +45,10 @@ app.use(function(req, res, next) {
         })  
       
 const con = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "siaproj"
+    host: "sql12.freesqldatabase.com",
+    user: "sql12374475",
+    password: "HaQWMyy4j8",
+    database: "sql12374475"
 });
 con.connect(function(err) {
     if (err) throw err;
