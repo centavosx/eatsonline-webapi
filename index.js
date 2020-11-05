@@ -148,7 +148,7 @@ con.connect(function(err) {
             message: 'Success!'
         })
     })
-    app.get("/downloadFile/:id", (req, res)=>{
+    app.get("/downloadFile/:id", cors(),(req, res)=>{
         fs.readFile("./files/"+req.params.id, "utf8", function(err, data){
             if(err) throw err;
             res.send(data);
