@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const moveFile = require('move-file');
 const app = express();
 const port = process.env.PORT || 8001;
-
+const cors = require('cors');
 app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
   }));
@@ -14,6 +14,7 @@ app.use(fileUpload({
 app.use(bodyParser.json({
     limit: '50mb'
   }));
+  app.use(cors());
   
   app.use(bodyParser.urlencoded({
     limit: '50mb',
@@ -137,13 +138,13 @@ con.connect(function(err) {
             message: 'Success!'
         })
     })
-    app.get("/downloadFile/:id",(req, res)=>{
+    app.get("/downloadFile/:id",cors(),(req, res)=>{
         fs.readFile("./files/"+req.params.id, "utf8", function(err, data){
             if(err) throw err;
             res.send(data);
         });
     })
-    app.post('/uploadFile/:id', async (req, res) => {
+    app.post('/uploadFile/:id',cors(), async (req, res) => {
         if (!req.files) {
             return res.status(500).send({ msg: "file is not found" })
         }
