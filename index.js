@@ -29,7 +29,6 @@ app.use(bodyParser.json({
     next();
 });
   
-app.use(express.static('public'))
       
 const con = mysql.createConnection({
     host: "sql12.freesqldatabase.com",
@@ -136,9 +135,9 @@ con.connect(function(err) {
         })
     })
     app.get("/downloadFile/:id",(req, res)=>{
-        var tempFile="./public/files/"+req.params.id;
-        res.send("https://siaprojj.herokuapp.com/files/"+req.params.id)
-        
+        fs.readFile('./public/files/'+req.params.id, 'base64', function (err,data) {
+            res.send('data:application/pdf;base64,'+data);
+        });
             
     })
     app.post('/uploadFile/:id',async (req, res) => {
