@@ -23,16 +23,15 @@ app.use(bodyParser.json({
     extended: false 
   }));
   
-app.use(function(req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    if ('OPTIONS' == req.method) {
-       res.sendStatus(200);
-     }
-     else {
-       next();
-     }});
+  app.use(function (req, res, next) {
+
+    res.setHeader('Access-Control-Allow-Origin', 'https://siaprojj.herokuapp.com/');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    next();
+});
   
      function urltoFile(url, filename, mimeType){
 
