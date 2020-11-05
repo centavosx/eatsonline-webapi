@@ -6,12 +6,10 @@ const bodyParser = require('body-parser');
 const moveFile = require('move-file');
 const app = express();
 const port = process.env.PORT || 8001;
-const cors = require('cors')
 
 app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
   }));
-app.use(cors());
 
 app.use(bodyParser.json({
     limit: '50mb'
@@ -47,38 +45,38 @@ con.connect(function(err) {
   });
 
 
-  app.get("/accounts",cors(),(req,res)=>{
+  app.get("/accounts",(req,res)=>{
     con.query("SELECT * FROM accounts", function (err, result, fields) {
         if (err) throw err;
             res.send(result);
         });
       });
-      app.get("/transactions",cors(), (req,res)=>{
+      app.get("/transactions", (req,res)=>{
       con.query("SELECT * FROM transactions", function (err, result, fields) {
         if (err) throw err;
             res.send(result);
         });
       });
-      app.get("/applications", cors(),(req,res)=>{
+      app.get("/applications", (req,res)=>{
       con.query("SELECT * FROM applications", function (err, result, fields) {
         if (err) throw err;
             res.send(result);
         });
       });
-      app.get("/events", cors(),(req,res)=>{
+      app.get("/events", (req,res)=>{
       con.query("SELECT * FROM events", function (err, result, fields) {
         if (err) throw err;
             res.send(result);
         });
       });
-      app.get("/admins", cors(),(req,res)=>{
+      app.get("/admins",(req,res)=>{
       con.query("SELECT * FROM admins", function (err, result, fields) {
         if (err) throw err;
             res.send(result);
         });
       });
 
-    app.post("/accounts",cors(), (req,res)=>{
+    app.post("/accounts", (req,res)=>{
             var values = [req.body.id, req.body.name, req.body.image, req.body.email, 
                 req.body.contactnumber, req.body.birthday, req.body.address, req.body.username, req.body.grades,
             req.body.allowance, req.body.weeklyallowance, req.body.password];
@@ -90,7 +88,7 @@ con.connect(function(err) {
                 message: 'Success!'
             })
     });
-    app.post("/events", cors(),(req,res)=>{
+    app.post("/events", (req,res)=>{
         var values = [req.body.event, req.body.date, req.body.time, 
             req.body.host, req.body.venue, req.body.id];
         con.query("INSERT INTO events VALUES (?)", [values], function(err, res){
@@ -101,7 +99,7 @@ con.connect(function(err) {
             message: 'Success!'
         })
 });
-    app.post("/transactions",cors(), (req,res)=>{
+    app.post("/transactions", (req,res)=>{
         var values = [req.body.id, req.body.userid, req.body.name, req.body.type, req.body.date, req.body.money, req.body.withdep];
         con.query("INSERT INTO transactions VALUES (?)", [values], function(err, res){
             if(err) throw err;
@@ -110,7 +108,7 @@ con.connect(function(err) {
             message: 'Success!'
         })
 });
-    app.put("/accounts/:id",cors(), (req,res)=>{
+    app.put("/accounts/:id", (req,res)=>{
             var sql = `UPDATE accounts SET id=${req.params.id},name='${req.body.name}',image='${req.body.image}',email='${req.body.email}',contactnumber='${req.body.contactnumber}',birthday='${req.body.birthday}',address='${req.body.address}',username='${req.body.username}',grades=${req.body.grades},allowance=${req.body.allowance},weeklyallowance=${req.body.weeklyallowance},password='${req.body.password}' WHERE id=${req.params.id}`;
             con.query(sql, function(err, res, fields){
                 if(err) throw err;
@@ -120,7 +118,7 @@ con.connect(function(err) {
                 message: 'Success!'
             })
     })
-    app.put("/applications/:id", cors(),(req,res)=>{
+    app.put("/applications/:id", (req,res)=>{
         
         var sql = `UPDATE applications SET approved= ${req.body.approved} WHERE id=${req.params.id}`;
         con.query(sql, function(err, res, fields){
@@ -130,7 +128,7 @@ con.connect(function(err) {
             message: 'Success!'
         })
 })
-    app.delete("/accounts/:id", cors(),(req,res)=>{
+    app.delete("/accounts/:id", (req,res)=>{
         var sql = `DELETE FROM accounts WHERE id= ${req.params.id}`;
         con.query(sql, function(err, res, fields){
             if(err) throw err;
@@ -145,7 +143,7 @@ con.connect(function(err) {
             res.send(data);
         });
     })
-    app.post('/uploadFile/:id',cors(), async (req, res) => {
+    app.post('/uploadFile/:id', async (req, res) => {
         if (!req.files) {
             return res.status(500).send({ msg: "file is not found" })
         }
@@ -160,7 +158,7 @@ con.connect(function(err) {
             return res.send({name: myFile.name, path: `/${myFile.name}`});
         });
     });
-   app.post("/applications/", cors(),(req, res)=>{
+   app.post("/applications/",(req, res)=>{
     moveFile('./temp/'+req.body.bdaycert, './files/'+req.body.bdaycert);
     moveFile('./temp/'+req.body.grade, './files/'+req.body.grade);
     moveFile('./temp/'+req.body.schoolid, './files/'+req.body.schoolid);
@@ -176,7 +174,7 @@ con.connect(function(err) {
         message: 'Success!'
     })
    })
-   app.delete("/applications/:id",cors(), (req,res)=>{
+   app.delete("/applications/:id",(req,res)=>{
     var sql = `DELETE FROM applications WHERE id= ${req.params.id}`;
     con.query(sql, function(err, res, fields){
         if(err) throw err;
@@ -185,7 +183,7 @@ con.connect(function(err) {
         message: 'Success!'
     })
 })
-app.delete("/events/:id", cors(),(req,res)=>{
+app.delete("/events/:id", (req,res)=>{
     var sql = `DELETE FROM events WHERE id= ${req.params.id}`;
     con.query(sql, function(err, res, fields){
         if(err) throw err;
@@ -194,7 +192,7 @@ app.delete("/events/:id", cors(),(req,res)=>{
         message: 'Success!'
     })
 })
-  app.post('/addWeeklytoall', cors(),(req,res) => {
+  app.post('/addWeeklytoall', (req,res) => {
     con.query("SELECT * FROM accounts", function (err, result, fields) {
         if (err) throw err;
             for(var i=0; i<result.length; i++){
