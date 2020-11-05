@@ -6,7 +6,6 @@ const bodyParser = require('body-parser');
 const moveFile = require('move-file');
 const app = express();
 const port = process.env.PORT || 8001;
-const cors = require('cors');
 app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
   }));
@@ -14,7 +13,6 @@ app.use(fileUpload({
 app.use(bodyParser.json({
     limit: '50mb'
   }));
-  app.use(cors());
   
   app.use(bodyParser.urlencoded({
     limit: '50mb',
@@ -26,13 +24,12 @@ app.use(bodyParser.json({
 
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type");
 
     next();
 });
   
-
+app.use(express.static('public'))
       
 const con = mysql.createConnection({
     host: "sql12.freesqldatabase.com",
@@ -138,13 +135,13 @@ con.connect(function(err) {
             message: 'Success!'
         })
     })
-    app.get("/downloadFile/:id",cors(),(req, res)=>{
-        fs.readFile("./files/"+req.params.id, "utf8", function(err, data){
-            if(err) throw err;
-            res.send(data);
-        });
+    app.get("/downloadFile/:id",(req, res)=>{
+        var tempFile="./public/files/"+req.params.id;
+        res.send("https://siaprojj.herokuapp.com/files/"+req.params.id)
+        
+            
     })
-    app.post('/uploadFile/:id',cors(), async (req, res) => {
+    app.post('/uploadFile/:id',async (req, res) => {
         if (!req.files) {
             return res.status(500).send({ msg: "file is not found" })
         }
@@ -160,9 +157,9 @@ con.connect(function(err) {
         });
     });
    app.post("/applications/",(req, res)=>{
-    moveFile('./temp/'+req.body.bdaycert, './files/'+req.body.bdaycert);
-    moveFile('./temp/'+req.body.grade, './files/'+req.body.grade);
-    moveFile('./temp/'+req.body.schoolid, './files/'+req.body.schoolid);
+    moveFile('./temp/'+req.body.bdaycert, './public/files/'+req.body.bdaycert);
+    moveFile('./temp/'+req.body.grade, './public/files/'+req.body.grade);
+    moveFile('./temp/'+req.body.schoolid, './public/files/'+req.body.schoolid);
 
     var values = [req.body.id, req.body.firstname, req.body.lastname, req.body.email, 
         req.body.phone, req.body.bday, req.body.address, req.body.bdaycert, req.body.grade,
