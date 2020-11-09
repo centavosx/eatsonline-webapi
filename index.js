@@ -48,8 +48,8 @@ con.connect(function(err) {
             res.send(result);
         });
       });
-      app.get("/transactions", (req,res)=>{
-      con.query("SELECT * FROM transactions", function (err, result, fields) {
+      app.get("/transactions/:id", (req,res)=>{
+      con.query(`SELECT * FROM transactions WHERE userid = ${req.params.id}`, function (err, result, fields) {
         if (err) throw err;
             res.send(result);
         });
