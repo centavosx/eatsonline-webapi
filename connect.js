@@ -31,9 +31,9 @@ const port = process.env.PORT || 8001;
 
 const con = mysql.createConnection({
     host: "sql12.freesqldatabase.com",
-    user: "sql12375374",
-    password: "i21JzwefdZ",
-    database: "sql12375374"
+    user: "sql12376659",
+    password: "qn8HhtmDmR",
+    database: "sql12376659"
 });
 con.connect(function(err) {
     if (err) throw err;
