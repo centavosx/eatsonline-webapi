@@ -135,12 +135,12 @@ app.patch("/api/v1/reverify", (req, res)=>{
       email(datas.email, "Verification Code for your Eats Online PH account", update.verificationCode, datas.name, endDate).then((x)=>{
         if(x){
           res.send({
-            registered: true,
+            sent: true,
             message: 'New verification has been sent!'
           });
         }else{          
           res.send({
-            registered: false,
+            sent: false,
             message: 'Failed to send verification code...'
           });
         }
@@ -199,7 +199,7 @@ app.patch("/api/v1/verify", (req, res)=>{
     }
 })
 
-app.post("/api/v1/profileData", (err, req) => {
+app.post("/api/v1/profileData", (req, res) => {
     try{
       let datas = req.body;
       data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
@@ -221,7 +221,7 @@ app.post("/api/v1/profileData", (err, req) => {
 });
 
 
-app.post("/api/v1/search", (err, req)=>{
+app.post("/api/v1/search", (req, res)=>{
     try{
       let datas = req.body;
       data.ref(datas.reference).orderByChild(datas.data).startAt(datas.value.toUpperCase()).endAt(datas.value.toLowerCase()+ "\uf8ff").once("value", (snapshot) =>{
