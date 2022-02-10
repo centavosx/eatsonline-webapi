@@ -33,7 +33,7 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500).json(err.status || 500);
 });
 
-app.post("/register", async(req,res)=>{
+app.post("/api/v1/register", async(req,res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").orderByChild("email").equalTo(datas.email).once("value", async(snapshot)=>{
@@ -87,7 +87,7 @@ app.post("/register", async(req,res)=>{
 })
 
 
-app.post("/login", (req, res)=>{
+app.post("/api/v1/login", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").orderByChild("email").equalTo(datas.email).once("value", (snapshot)=>{
@@ -122,7 +122,7 @@ app.post("/login", (req, res)=>{
  
 });
 
-app.patch("/reverify", (req, res)=>{
+app.patch("/api/v1/reverify", (req, res)=>{
   try{
     let datas = req.body;
     let date = new Date();
@@ -151,7 +151,7 @@ app.patch("/reverify", (req, res)=>{
 })
 
 
-app.patch("/verify", (req, res)=>{
+app.patch("/api/v1/verify", (req, res)=>{
     try{
     let datas = req.body;
     data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
@@ -198,7 +198,7 @@ app.patch("/verify", (req, res)=>{
     }
 })
 
-app.post("/profileData", (err, req) => {
+app.post("/api/v1/profileData", (err, req) => {
     try{
       let datas = req.body;
       data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
@@ -220,7 +220,7 @@ app.post("/profileData", (err, req) => {
 });
 
 
-app.post("/search", (err, req)=>{
+app.post("/api/v1/search", (err, req)=>{
     try{
       let datas = req.body;
       data.ref(datas.reference).orderByChild(datas.data).startAt(datas.value.toUpperCase()).endAt(datas.value.toLowerCase()+ "\uf8ff").once("value", (snapshot) =>{
@@ -240,7 +240,7 @@ app.post("/search", (err, req)=>{
     }
 })
 
-app.post("/getData", (req, res)=>{
+app.post("/api/v1/getData", (req, res)=>{
     try{
       let datas = req.body;
       data.ref(datas.reference).orderByChild(datas.sortwhat).once("value", (snapshot)=>{
@@ -269,7 +269,7 @@ app.post("/getData", (req, res)=>{
 
 })
 
-app.post("/comment", (req, res)=>{
+app.post("/api/v1/comment", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, user: datas.user, rating: datas.rate, email: datas.email, uid: datas.uid}).then(()=>{
@@ -285,7 +285,7 @@ app.post("/comment", (req, res)=>{
 
 })
 
-app.get("/comment", (req, res) =>{
+app.get("/api/v1/comment", (req, res) =>{
 
     try{
       let datas = req.body;
@@ -301,7 +301,7 @@ app.get("/comment", (req, res) =>{
     }
 })
 
-app.patch("/profileData", (req, res)=>{
+app.patch("/api/v1/profileData", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").child(datas.id).update(datas.data).then(()=>{
