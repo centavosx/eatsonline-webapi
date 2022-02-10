@@ -29,11 +29,11 @@ const port = process.env.PORT || 8001;
     res.setHeader('Access-Control-Allow-Credentials', true);
     next();
 });
+app.use(function(err, req, res, next) {
+  res.status(err.status || 500).json(err.status || 500);
+});
 
-app.post("/register", async(req,res, err)=>{
-  if(err){
-    res.status(404).send({d:"Error"});
-  }else{
+app.post("/register", async(req,res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").orderByChild("email").equalTo(datas.email).once("value", async(snapshot)=>{
@@ -64,7 +64,7 @@ app.post("/register", async(req,res, err)=>{
           datas.dateCreated = date.toString();
           let x = data.ref("accounts").push(datas);
           data.ref(x.key).child("addresses").push({address:datas.address, primary: true}).then(()=>{
-            email(datas.email, "Verification Code for your Eats Online PH account", datas.verificationCode, datas.name).then((x)=>{
+            email(datas.email, "Verification Code for your Eats Online PH account", datas.verificationCode, datas.name, endDate).then((x)=>{
               if(x){
                 res.send({
                   registered: true,
@@ -81,16 +81,13 @@ app.post("/register", async(req,res, err)=>{
         }
       })
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
+
 })
 
 
-app.post("/login", (req, res, err)=>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+app.post("/login", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").orderByChild("email").equalTo(datas.email).once("value", (snapshot)=>{
@@ -99,12 +96,14 @@ app.post("/login", (req, res, err)=>{
             if(x.val().verified){
               res.send({
                 id: x.key,
+                name: x.val().name,
                 login: true,
                 message: "Successful"
               })
             }else{
               res.send({
                 id: x.key,
+                name: x.val().name,
                 login: false,
                 message: "Not verified"
               })
@@ -118,14 +117,41 @@ app.post("/login", (req, res, err)=>{
         });
       });
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
+ 
 });
-app.patch("/verify", (req, res, err)=>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+
+app.patch("/reverify", (req, res)=>{
+  try{
+    let datas = req.body;
+    let date = new Date();
+    let endDate = new Date(parseInt(date.getTime())+86400000).toString();
+    let update = {}
+    update.verificationCode = generateCode();
+    update.verifyend = endDate;
+    data.ref("accounts").child(datas.id).update(update).then(()=>{
+      email(datas.email, "Verification Code for your Eats Online PH account", update.verificationCode, datas.name, endDate).then((x)=>{
+        if(x){
+          res.send({
+            registered: true,
+            message: 'New verification has been sent!'
+          });
+        }else{          
+          res.send({
+            registered: false,
+            message: 'Failed to send verification code...'
+          });
+        }
+      })
+    })
+  }catch(e){
+    res.status(500).send({error: true, message:"Error"});
+  }
+})
+
+
+app.patch("/verify", (req, res)=>{
     try{
     let datas = req.body;
     data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
@@ -138,12 +164,20 @@ app.patch("/verify", (req, res, err)=>{
         snapshot.forEach((snap)=>{
           if(!snap.val().verified){
             if(snap.val().verificationCode===datas.code){
-              data.ref("accounts").child(snap.key).update({verified: true, verificationCode: null, verifyend: null}).then(()=>{
-                res.send({
-                  verified: true,
-                  message: "Your account has been verified!"
+              let date = new Date(snap.val().verifyend);
+              if(new Date() < date){
+                data.ref("accounts").child(snap.key).update({verified: true, verificationCode: null, verifyend: null}).then(()=>{
+                  res.send({
+                    verified: true,
+                    message: "Your account has been verified!"
+                  })
                 })
-              })
+              }else{
+                res.send({
+                  verified: false,
+                  message: "Verification code has been expired!"
+                })
+              }
             }else{
               res.send({
                 verified: false,
@@ -160,15 +194,11 @@ app.patch("/verify", (req, res, err)=>{
       }
     })
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
 })
 
-app.post("/profileData", (req, res, err) => {
-  if(err){
-      res.status(500).send({error: true, message: "Error"});
-  }else{
+app.post("/profileData", (err, req) => {
     try{
       let datas = req.body;
       data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
@@ -185,16 +215,12 @@ app.post("/profileData", (req, res, err) => {
         res.send(object);
       });
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
 });
 
 
-app.post("/search", (req, res, err)=>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+app.post("/search", (err, req)=>{
     try{
       let datas = req.body;
       data.ref(datas.reference).orderByChild(datas.data).startAt(datas.value.toUpperCase()).endAt(datas.value.toLowerCase()+ "\uf8ff").once("value", (snapshot) =>{
@@ -210,15 +236,11 @@ app.post("/search", (req, res, err)=>{
         })
       });
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
 })
 
-app.post("/getData", (req, res, err)=>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+app.post("/getData", (req, res)=>{
     try{
       let datas = req.body;
       data.ref(datas.reference).orderByChild(datas.sortwhat).once("value", (snapshot)=>{
@@ -242,15 +264,12 @@ app.post("/getData", (req, res, err)=>{
         })
       })
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
+
 })
 
-app.post("/comment", (req, res, err)=>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+app.post("/comment", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, user: datas.user, rating: datas.rate, email: datas.email, uid: datas.uid}).then(()=>{
@@ -261,15 +280,13 @@ app.post("/comment", (req, res, err)=>{
         })
       });
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
+
 })
 
-app.get("/comment", (req, res, err) =>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+app.get("/comment", (req, res) =>{
+
     try{
       let datas = req.body;
       data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
@@ -280,24 +297,19 @@ app.get("/comment", (req, res, err) =>{
         res.send({data:x});
       })
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
-    }
+      res.status(500).send({error: true, message: "Error"});
     }
 })
 
-app.patch("/profileData", (req, res, err)=>{
-  if(err){
-    res.status(500).send({error: true, message: "Error"});
-  }else{
+app.patch("/profileData", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").child(datas.id).update(datas.data).then(()=>{
         res.send({update: true, message:"Account Updated!"});
       })
     }catch(e){
-      res.status(500).send({error: true, message: e.toString()});
+      res.status(500).send({error: true, message: "Error"});
     }
-  }
 })
 
 app.listen(port, () => {

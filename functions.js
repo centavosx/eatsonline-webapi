@@ -43,11 +43,13 @@ const checkLastKey = (what) =>{
 
 
 
-const email = (to, subject, code, name,) =>{
+const email = (to, subject, code, name, expiration) =>{
     const output = `
     <h1>Eats Online PH</h1>
     <p>Good day Ma'am/Sir ${name}, here's your verification code for your account:</p>
-    <b><h3>${code}</h3>
+    <i><b><h3>${code}</h3></b><i>
+    <br/>
+    <p>This code will be expired in <b>${new Date(expiration).toDateString()} ${new Date(expiration).toLocaleTimeString()}</b></p>
     <br/>
     <p>Best Wishes,</p>
     <h4>Eats Online PH</h4>
