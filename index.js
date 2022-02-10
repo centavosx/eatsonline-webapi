@@ -30,7 +30,7 @@ const port = process.env.PORT || 8001;
     next();
 });
 app.use(function(err, req, res, next) {
-  res.status(err.status || 500).json(err.status || 500);
+  res.status(err.status || 500).json({error: true, message:"Error"});
 });
 
 app.post("/api/v1/register", async(req,res)=>{
@@ -45,6 +45,7 @@ app.post("/api/v1/register", async(req,res)=>{
             if(x.val().verified){
               ch = true;
               res.send({registered: false,
+                registered: false,
                 message: 'Email is already registered'
               });
             }else{
@@ -63,12 +64,12 @@ app.post("/api/v1/register", async(req,res)=>{
           datas.verifyend = endDate;
           datas.dateCreated = date.toString();
           let x = data.ref("accounts").push(datas);
-          data.ref(x.key).child("addresses").push({address:datas.address, primary: true}).then(()=>{
+          data.ref("accounts").child(x.key).child("addresses").push({address:datas.address, primary: true}).then(()=>{
             email(datas.email, "Verification Code for your Eats Online PH account", datas.verificationCode, datas.name, endDate).then((x)=>{
               if(x){
                 res.send({
                   registered: true,
-                  message: 'Successfully registered...'
+                  message: 'Successfully registered and a verification code has been sent to your email...'
                 });
               }else{          
                 res.send({
