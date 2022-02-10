@@ -1,18 +1,18 @@
 const fs=require("fs");
-const mysql = require("mysql");
-const fileUpload = require('express-fileupload');
+const data = require("./firebase/firebasecon");
+const cors = require('cors');
 const express = require('express');
-const bodyParser = require('body-parser');
-const moveFile = require('move-file');
 const app = express();
+const bodyParser = require('body-parser');
+const {generateCode, checkLastKey, email} = require("./functions.js");
+const e = require("cors");
 const port = process.env.PORT || 8001;
-app.use(fileUpload({
-    limits: { fileSize: 50 * 1024 * 1024 },
-  }));
 
-app.use(bodyParser.json({
+  app.use(cors());
+  app.use(bodyParser.json({
     limit: '50mb'
   }));
+  app.use(cors());
   
   app.use(bodyParser.urlencoded({
     limit: '50mb',
@@ -20,189 +20,226 @@ app.use(bodyParser.json({
     extended: false 
   }));
   
-  app.use(function (req, res, next) {
 
+
+ app.use(function (req, res, next) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type");
-
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Credentials', true);
     next();
 });
-  
-      
-const con = mysql.createConnection({
-    host: "sql12.freesqldatabase.com",
-    user: "sql12374475",
-    password: "HaQWMyy4j8",
-    database: "sql12374475"
-});
-con.connect(function(err) {
-    if (err) throw err;
-    console.log("Connected!");
-  });
 
-
-  app.get("/accounts",(req,res)=>{
-    con.query("SELECT * FROM accounts", function (err, result, fields) {
-        if (err) throw err;
-            res.send(result);
-        });
-      });
-      app.get("/transactions/:id", (req,res)=>{
-      con.query(`SELECT * FROM transactions WHERE userid = ${req.params.id}`, function (err, result, fields) {
-        if (err) throw err;
-            res.send(result);
-        });
-      });
-      app.get("/applications", (req,res)=>{
-      con.query("SELECT * FROM applications", function (err, result, fields) {
-        if (err) throw err;
-            res.send(result);
-        });
-      });
-      app.get("/events", (req,res)=>{
-      con.query("SELECT * FROM events", function (err, result, fields) {
-        if (err) throw err;
-            res.send(result);
-        });
-      });
-      app.get("/admins",(req,res)=>{
-      con.query("SELECT * FROM admins", function (err, result, fields) {
-        if (err) throw err;
-            res.send(result);
-        });
-      });
-
-    app.post("/accounts", (req,res)=>{
-            var values = [req.body.id, req.body.name, req.body.image, req.body.email, 
-                req.body.contactnumber, req.body.birthday, req.body.address, req.body.username, req.body.grades,
-            req.body.allowance, req.body.weeklyallowance, req.body.password];
-            con.query("INSERT INTO accounts VALUES (?)", [values], function(err, res){
-                if(err) throw err;
-                
-            })
-            res.json({
-                message: 'Success!'
-            })
-    });
-    app.post("/events", (req,res)=>{
-        var values = [req.body.event, req.body.date, req.body.time, 
-            req.body.host, req.body.venue, req.body.id];
-        con.query("INSERT INTO events VALUES (?)", [values], function(err, res){
-            if(err) throw err;
-            
-        })
-        res.json({
-            message: 'Success!'
-        })
-});
-    app.post("/transactions", (req,res)=>{
-        var values = [req.body.id, req.body.userid, req.body.name, req.body.type, req.body.date, req.body.money, req.body.withdep];
-        con.query("INSERT INTO transactions VALUES (?)", [values], function(err, res){
-            if(err) throw err;
-        })
-        res.json({
-            message: 'Success!'
-        })
-});
-    app.put("/accounts/:id", (req,res)=>{
-            var sql = `UPDATE accounts SET id=${req.params.id},name='${req.body.name}',image='${req.body.image}',email='${req.body.email}',contactnumber='${req.body.contactnumber}',birthday='${req.body.birthday}',address='${req.body.address}',username='${req.body.username}',grades=${req.body.grades},allowance=${req.body.allowance},weeklyallowance=${req.body.weeklyallowance},password='${req.body.password}' WHERE id=${req.params.id}`;
-            con.query(sql, function(err, res, fields){
-                if(err) throw err;
-                
+app.post("/register", async(req,res)=>{
+    let datas = req.body;
+    data.ref("accounts").orderByChild("email").equalTo(datas.email).once("value", async(snapshot)=>{
+      let ch = false;
+      if(snapshot.val()!=null){
+        snapshot.forEach((x)=>{
+          let key = "";
+          key = x;
+          if(x.val().verified){
+            ch = true;
+            res.send({registered: false,
+              message: 'Email is already registered'
             });
-            res.json({
-                message: 'Success!'
-            })
-    })
-    app.put("/applications/:id", (req,res)=>{
-        
-        var sql = `UPDATE applications SET approved= ${req.body.approved} WHERE id=${req.params.id}`;
-        con.query(sql, function(err, res, fields){
-            if(err) throw err;
-        });
-        res.json({
-            message: 'Success!'
-        })
-})
-    app.delete("/accounts/:id", (req,res)=>{
-        var sql = `DELETE FROM accounts WHERE id= ${req.params.id}`;
-        con.query(sql, function(err, res, fields){
-            if(err) throw err;
-        });
-        res.json({
-            message: 'Success!'
-        })
-    })
-    app.get("/downloadFile/:id",(req, res)=>{
-        fs.readFile('./public/files/'+req.params.id, 'base64', function (err,data) {
-            res.send('data:application/pdf;base64,'+data);
-        });
-            
-    })
-    app.post('/uploadFile/:id',async (req, res) => {
-        if (!req.files) {
-            return res.status(500).send({ msg: "file is not found" })
-        }
-            // accessing the file
-        const myFile = req.files.file;    //  mv() method places the file inside public directory
-        myFile.mv(`temp/${req.params.id}${myFile.name}`, function (err) {
-            if (err) {
-                console.log(err)
-                return res.status(500).send({ msg: "Error occured" });
+          }else{
+            data.ref("accounts").child(x.key).remove();
+          }
+        });   
+      }
+      if(!ch){
+        const id = await checkLastKey('accounts');
+        let date = new Date();
+        let endDate = new Date(parseInt(date.getTime())+86400000).toString();
+        datas.id = id;
+        datas.totalspent = 0;
+        datas.verified = false;
+        datas.verificationCode = generateCode();
+        datas.verifyend = endDate;
+        datas.dateCreated = date.toString();
+        let x = data.ref("accounts").push(datas);
+        data.ref(x.key).child("addresses").push({address:datas.address, primary: true}).then(()=>{
+          email(datas.email, "Verification Code for your Eats Online PH account", datas.verificationCode, datas.name).then((x)=>{
+            if(x){
+              res.send({
+                registered: true,
+                message: 'Successfully registered...'
+              });
+            }else{          
+              res.send({
+                registered: false,
+                message: 'Failed to send verification code...'
+              });
             }
-            // returing the response with file path and name
-            return res.send({name: myFile.name, path: `/${myFile.name}`});
-        });
-    });
-   app.post("/applications/",(req, res)=>{
-    moveFile('./temp/'+req.body.bdaycert, './public/files/'+req.body.bdaycert);
-    moveFile('./temp/'+req.body.grade, './public/files/'+req.body.grade);
-    moveFile('./temp/'+req.body.schoolid, './public/files/'+req.body.schoolid);
+          })
+        })
+      }
+    })
+});
 
-    var values = [req.body.id, req.body.firstname, req.body.lastname, req.body.email, 
-        req.body.phone, req.body.bday, req.body.address, req.body.bdaycert, req.body.grade,
-        req.body.schoolid, req.body.image, req.body.approved];
-    con.query("INSERT INTO applications VALUES (?)", [values], function(err, res){
-        if(err) throw err;
-        
-    })
-    res.json({
-        message: 'Success!'
-    })
-   })
-   app.delete("/applications/:id",(req,res)=>{
-    var sql = `DELETE FROM applications WHERE id= ${req.params.id}`;
-    con.query(sql, function(err, res, fields){
-        if(err) throw err;
-    });
-    res.json({
-        message: 'Success!'
-    })
-})
-app.delete("/events/:id", (req,res)=>{
-    var sql = `DELETE FROM events WHERE id= ${req.params.id}`;
-    con.query(sql, function(err, res, fields){
-        if(err) throw err;
-    });
-    res.json({
-        message: 'Success!'
-    })
-})
-  app.post('/addWeeklytoall', (req,res) => {
-    con.query("SELECT * FROM accounts", function (err, result, fields) {
-        if (err) throw err;
-            for(var i=0; i<result.length; i++){
-                var money = result[i].weeklyallowance + req.body.money;
-                con.query(`UPDATE accounts SET weeklyallowance=${money} WHERE id=${result[i].id}`, function(err, res, fields){
-                    if(err) throw err;
-                });
-            }
+
+app.post("/login", (req, res)=>{
+  let datas = req.body;
+  data.ref("accounts").orderByChild("email").equalTo(datas.email).once("value", (snapshot)=>{
+    snapshot.forEach((x)=>{
+      if(x.val().password === datas.password){
+        if(x.val().verified){
+          res.send({
+            login: true,
+            message: "Successful"
+          })
+        }else{
+          res.send({
+            login: false,
+            message: "Not verified"
+          })
+        }
+      }else{
+        res.send({
+          login: false,
+          message: "Wrong password"
         });
-        res.json({
-            message: 'Success!'
+      }
+    });
+  });
+});
+app.patch("/verify", (req, res)=>{
+  let datas = req.body;
+  data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
+    if(snapshot.val()==null){
+      res.send({
+        verified: false,
+        message: "Account not found"
+      })
+    }else{
+      snapshot.forEach((snap)=>{
+        if(!snap.val().verified){
+          if(snap.val().verificationCode===datas.code){
+            data.ref("accounts").child(snap.key).update({verified: true, verificationCode: null, verifyend: null}).then(()=>{
+              res.send({
+                verified: true,
+                message: "Your account has been verified!"
+              })
+            })
+          }else{
+            res.send({
+              verified: false,
+              message: "Wrong Verification Code!"
+            });
+          }
+        }else{
+          res.send({
+            verified: false,
+            message: "Account is already verified!"
+          });
+        }
+      })
+    }
+  })
+})
+
+app.post("/profileData", (req, res) => {
+  try{
+    let datas = req.body;
+    data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
+      let object = {};  
+      snapshot.forEach((snaps)=>{
+          for(let key in snaps.val()){
+            if(typeof datas.data === "object"){
+              if(datas.data.includes(key)){
+                object[key] = snaps.val()[key];
+              }
+            }
+          }
         })
+      res.send(object);
+    });
+  }catch(e){
+    res.send({error:true, errorMessage: e.toString()})
+  }
+});
+
+
+app.post("/search", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref(datas.reference).orderByChild(datas.data).startAt(datas.value.toUpperCase()).endAt(datas.value.toLowerCase()+ "\uf8ff").once("value", (snapshot) =>{
+      let x = [];
+      snapshot.forEach((snap)=>{
+        if(snap.val()[datas.data].toLowerCase().includes(datas.value.toLowerCase())){
+          x.push([snap.key, snap.val()]);
+        }
       });
+      res.send({
+        search:true,
+        data: x
+      })
+    });
+  }catch(e){
+    res.send({error:true, errorMessage: e.toString()});
+  }
+})
+
+app.post("/getData", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref(datas.reference).orderByChild(datas.sortwhat).once("value", (snapshot)=>{
+      let x = [];
+      snapshot.forEach((snap)=>{
+        x.push([snap.key, snap.val()]);
+      })
+      x.reverse();
+      res.send({
+        data: x
+      })
+    })
+  }catch(e){
+    res.send({error: true, errorMessage: e.toString()});
+  }
+})
+
+app.post("/comment", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, user: datas.user, rating: datas.rate, email: datas.email, uid: datas.uid}).then(()=>{
+      res.send({
+        comment: datas.message,
+        success: true,
+        message: "Comment posted!"
+      })
+    });
+  }catch(e){
+    res.send({error: true, errorMessage: e.toString()});
+  }
+})
+
+app.get("/comment", (req, res) =>{
+  try{
+    let datas = req.body;
+    data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
+      let x = [];
+      snapshot.forEach((val)=>{
+        x.push([val.key, val.val()]);
+      })
+      res.send({data:x});
+    })
+  }catch(e){
+    res.send({error:true, errorMessage: e.toString()});
+  }
+
+})
+
+app.patch("/profileData", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("accounts").child(datas.id).update(datas.data).then(()=>{
+      res.send({update: true, message:"Account Updated!"});
+    })
+  }catch(e){
+    res.send({error:true, errorMessage: e.toString()})
+  }
+})
 
 app.listen(port, () => {
     console.log("app listening on port: ", port);
