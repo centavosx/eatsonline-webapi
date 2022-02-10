@@ -184,11 +184,22 @@ app.post("/search", (req, res)=>{
 app.post("/getData", (req, res)=>{
   try{
     let datas = req.body;
+   
     data.ref(datas.reference).orderByChild(datas.sortwhat).once("value", (snapshot)=>{
       let x = [];
-      snapshot.forEach((snap)=>{
-        x.push([snap.key, snap.val()]);
-      })
+      if("index" in datas){
+        let i = 0;
+        snapshot.forEach((snap)=>{
+          if(i >= (snapshot.numChildren()-datas.index[1]) && i <= (snapshot.numChildren() - datas.index[0])){
+            x.push([snap.key, snap.val()]);
+          }
+          i++;
+        })
+      }else{
+        snapshot.forEach((snap)=>{
+          x.push([snap.key, snap.val()]);
+        })
+      }
       x.reverse();
       res.send({
         data: x
