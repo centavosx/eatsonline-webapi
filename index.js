@@ -208,7 +208,14 @@ app.post("/api/v1/profileData", (req, res) => {
             for(let key in snaps.val()){
               if(typeof datas.data === "object"){
                 if(datas.data.includes(key)){
-                  object[key] = snaps.val()[key];
+                  if(key=="addresses"){
+                    object[key] = [];
+                    for(let address in snaps.val()[key]){
+                      object[key].push([snaps.val()[key][address].address, snaps.val()[key][address].primary]);
+                    }
+                  }else{
+                    object[key] = snaps.val()[key];
+                  }
                 }
               }
             }
