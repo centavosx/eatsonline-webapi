@@ -4,8 +4,9 @@ const cors = require('cors');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
-const {generateCode, checkLastKey, email} = require("./functions.js");
+const {encrypt, generateCode, checkLastKey, email, sendProfileData} = require("./functions.js");
 const e = require("cors");
+
 const port = process.env.PORT || 8001;
 
   app.use(cors());
@@ -32,6 +33,30 @@ const port = process.env.PORT || 8001;
 app.use(function(err, req, res, next) {
   res.status(err.status || 500).json({error: true, message:"Error"});
 });
+
+app.post("/api/v1/guest", async(req,res)=>{
+    try{
+      let date = new Date();
+      const id = await checkLastKey('accounts');
+      let x = data.ref("accounts").push({
+        dateCreated: date.toString(),
+        totalspent: 0,
+        phoneNumber: "",
+        email: "GUEST",
+        guest: true,
+        id: id,
+        verified: true
+      });
+      data.ref("accounts").child(x.key).update({name: 'Guest -'+encrypt(x.key)}).then(()=>{
+        res.send({
+          registered: true,
+          id: x.key
+        })
+      })
+    }catch(e){
+      res.status(500).send({error: true, message: "Error"});
+    }
+})
 
 app.post("/api/v1/register", async(req,res)=>{
     try{
@@ -63,6 +88,7 @@ app.post("/api/v1/register", async(req,res)=>{
           datas.verificationCode = generateCode();
           datas.verifyend = endDate;
           datas.dateCreated = date.toString();
+          datas.guest = false;
           let x = data.ref("accounts").push(datas);
           data.ref("accounts").child(x.key).child("addresses").push({address:datas.address, primary: true}).then(()=>{
             email(datas.email, "Verification Code for your Eats Online PH account", datas.verificationCode, datas.name, endDate).then((x)=>{
@@ -84,8 +110,8 @@ app.post("/api/v1/register", async(req,res)=>{
     }catch(e){
       res.status(500).send({error: true, message: "Error"});
     }
-
 })
+
 
 
 app.post("/api/v1/login", (req, res)=>{
@@ -201,32 +227,22 @@ app.patch("/api/v1/verify", (req, res)=>{
 
 app.post("/api/v1/profileData", (req, res) => {
     try{
-      let datas = req.body;
-      data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
-        let object = {};  
-        snapshot.forEach((snaps)=>{
-            for(let key in snaps.val()){
-              if(typeof datas.data === "object"){
-                if(datas.data.includes(key)){
-                  if(key=="addresses"){
-                    object[key] = [];
-                    for(let address in snaps.val()[key]){
-                      object[key].push([snaps.val()[key][address].address, snaps.val()[key][address].primary]);
-                    }
-                  }else{
-                    object[key] = snaps.val()[key];
-                  }
-                }
-              }
-            }
-          })
-        res.send(object);
-      });
+      sendProfileData(req, res);
     }catch(e){
       res.status(500).send({error: true, message: "Error"});
     }
 });
 
+app.patch("/api/v1/profileData", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("accounts").child(datas.id).update(datas.updateData).then(()=>{
+      sendProfileData(req, res);
+    });
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"});
+  }
+})
 
 app.post("/api/v1/search", (req, res)=>{
     try{

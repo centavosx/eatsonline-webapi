@@ -2,7 +2,7 @@ const data = require("./firebase/firebasecon");
 const nodemailer = require('nodemailer');
 const { google } = require("googleapis");
 const OAuth2 = google.auth.OAuth2;
-
+const CryptoJS = require("crypto-js");
 const oauth2Client = new OAuth2(
     "184126786610-srtof6p7p1o89skesva310r1kv76thgf.apps.googleusercontent.com",
     "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", 
@@ -88,8 +88,39 @@ const email = (to, subject, code, name, expiration) =>{
    }) 
 }
 
+const sendProfileData = (req, res) =>{
+    let datas = req.body;
+    data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
+      let object = {};  
+      snapshot.forEach((snaps)=>{
+          for(let key in snaps.val()){
+            if(typeof datas.data === "object"){
+              if(datas.data.includes(key)){
+                if(key=="addresses"){
+                  object[key] = [];
+                  for(let address in snaps.val()[key]){
+                    object[key].push([snaps.val()[key][address].address, snaps.val()[key][address].primary]);
+                  }
+                }else{
+                  object[key] = snaps.val()[key];
+                }
+              }
+            }
+          }
+        })
+      res.send(object);
+    });
+}
+
+const encrypt= (text) => {
+    const passphrase = "EatsOnline2020";
+    return CryptoJS.AES.encrypt(text, passphrase).toString();
+  };
+
 module.exports = {
     generateCode,
     checkLastKey,
-    email
+    email,
+    sendProfileData,
+    encrypt
 }
