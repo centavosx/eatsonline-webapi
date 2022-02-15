@@ -99,7 +99,7 @@ const sendProfileData = (req, res) =>{
                 if(key=="addresses"){
                   object[key] = [];
                   for(let address in snaps.val()[key]){
-                    object[key].push([snaps.val()[key][address].address, snaps.val()[key][address].primary]);
+                    object[key].push([address, snaps.val()[key][address]]);
                   }
                 }else{
                   object[key] = snaps.val()[key];

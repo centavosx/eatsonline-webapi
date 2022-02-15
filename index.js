@@ -225,6 +225,49 @@ app.patch("/api/v1/verify", (req, res)=>{
     }
 })
 
+app.post("/api/v1/address", (req, res)=>{
+    try{
+      let datas = req.body;
+      data.ref("accounts").child(datas.id).child("addresses").push({address: datas.address, primary: false}).then(()=>{
+        res.send({
+          added: true,
+          message: "Address Added!" 
+        })
+      })
+    }catch(e){
+      res.status(500).send({error: true, message: "Error"});     
+    }
+});
+
+app.patch("/api/v1/address", (req, res)=>{
+  try{
+    let datas = req.body;
+    if(datas.change){
+      data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address}).then(()=>{
+        res.send({
+          updated: true,
+          message: 'Address Updated'
+        });
+      })
+    }else{
+      data.ref("accounts").child(datas.id).child("addresses").orderByChild("primary").equalTo(true).once('value', (snapshot)=>{
+        snapshot.forEach((snap)=>{
+          data.ref("accounts").child(datas.id).child("addresses").child(snap.key).update({primary: false}).then(()=>{
+            data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address, primary: datas.primary}).then(()=>{
+              res.send({
+                updated: true,
+                message: 'Address Updated'
+              });
+            })
+          })
+        })
+      })
+    }
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"});     
+  }
+});
+
 app.post("/api/v1/profileData", (req, res) => {
     try{
       sendProfileData(req, res);
@@ -308,6 +351,7 @@ app.post("/api/v1/comment", (req, res)=>{
     }
 
 })
+
 
 app.get("/api/v1/comment", (req, res) =>{
 
