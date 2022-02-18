@@ -4,9 +4,9 @@ const cors = require('cors');
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
-const {encrypt, generateCode, checkLastKey, email, sendProfileData} = require("./functions.js");
+const {encrypt, encryptJSON, decryptJSON, decrypt, generateCode, checkLastKey, email, sendProfileData} = require("./functions.js");
 const e = require("cors");
-
+const CryptoJS = require("crypto-js");
 const port = process.env.PORT || 8001;
 
   app.use(cors());
@@ -31,7 +31,7 @@ const port = process.env.PORT || 8001;
     next();
 });
 app.use(function(err, req, res, next) {
-  res.status(err.status || 500).json({error: true, message:"Error"});
+  res.status(err.status || 500).json(encryptJSON({error: true, message:"Error"}));
 });
 
 app.post("/api/v1/guest",
@@ -53,13 +53,13 @@ app.post("/api/v1/guest", async(req,res)=>{
         verified: true
       });
       data.ref("accounts").child(x.key).update({name: 'Guest -'+encrypt(x.key)}).then(()=>{
-        res.send({
+        res.send(encryptJSON({
           registered: true,
           id: x.key
-        })
+        }))
       })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
 
@@ -74,10 +74,10 @@ app.post("/api/v1/register", async(req,res)=>{
             key = x;
             if(x.val().verified){
               ch = true;
-              res.send({registered: false,
+              res.send(encryptJSON({registered: false,
                 registered: false,
                 message: 'Email is already registered'
-              });
+              }));
             }else{
               data.ref("accounts").child(x.key).remove();
             }
@@ -98,22 +98,22 @@ app.post("/api/v1/register", async(req,res)=>{
           data.ref("accounts").child(x.key).child("addresses").push({address:datas.address, primary: true}).then(()=>{
             email(datas.email, "Verification Code for your Eats Online PH account", datas.verificationCode, datas.name, endDate).then((x)=>{
               if(x){
-                res.send({
+                res.send(encryptJSON({
                   registered: true,
                   message: 'Successfully registered and a verification code has been sent to your email...'
-                });
+                }));
               }else{          
-                res.send({
+                res.send(encryptJSON({
                   registered: false,
                   message: 'Failed to send verification code...'
-                });
+                }));
               }
             })
           })
         }
       })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
 
@@ -126,30 +126,30 @@ app.post("/api/v1/login", (req, res)=>{
         snapshot.forEach((x)=>{
           if(x.val().password === datas.password){
             if(x.val().verified){
-              res.send({
+              res.send(encryptJSON({
                 id: x.key,
                 name: x.val().name,
                 login: true,
                 message: "Successful"
-              })
+              }))
             }else{
-              res.send({
+              res.send(encryptJSON({
                 id: x.key,
                 name: x.val().name,
                 login: false,
                 message: "Not verified"
-              })
+              }))
             }
           }else{
-            res.send({
+            res.send(encryptJSON({
               login: false,
               message: "Wrong password"
-            });
+            }));
           }
         });
       });
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
  
 });
@@ -165,20 +165,20 @@ app.patch("/api/v1/reverify", (req, res)=>{
     data.ref("accounts").child(datas.id).update(update).then(()=>{
       email(datas.email, "Verification Code for your Eats Online PH account", update.verificationCode, datas.name, endDate).then((x)=>{
         if(x){
-          res.send({
+          res.send(encryptJSON({
             sent: true,
             message: 'New verification has been sent!'
-          });
+          }));
         }else{          
-          res.send({
+          res.send(encryptJSON({
             sent: false,
             message: 'Failed to send verification code...'
-          });
+          }));
         }
       })
     })
   }catch(e){
-    res.status(500).send({error: true, message:"Error"});
+    res.status(500).send(encryptJSON({error: true, message:"Error"}));
   }
 })
 
@@ -188,10 +188,10 @@ app.patch("/api/v1/verify", (req, res)=>{
     let datas = req.body;
     data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
       if(snapshot.val()==null){
-        res.send({
+        res.send(encryptJSON({
           verified: false,
           message: "Account not found"
-        })
+        }))
       }else{
         snapshot.forEach((snap)=>{
           if(!snap.val().verified){
@@ -199,34 +199,34 @@ app.patch("/api/v1/verify", (req, res)=>{
               let date = new Date(snap.val().verifyend);
               if(new Date() < date){
                 data.ref("accounts").child(snap.key).update({verified: true, verificationCode: null, verifyend: null}).then(()=>{
-                  res.send({
+                  res.send(encryptJSON({
                     verified: true,
                     message: "Your account has been verified!"
-                  })
+                  }))
                 })
               }else{
-                res.send({
+                res.send(encryptJSON({
                   verified: false,
                   message: "Verification code has been expired!"
-                })
+                }))
               }
             }else{
-              res.send({
+              res.send(encryptJSON({
                 verified: false,
                 message: "Wrong Verification Code!"
-              });
+              }));
             }
           }else{
-            res.send({
+            res.send(encryptJSON({
               verified: false,
               message: "Account is already verified!"
-            });
+            }));
           }
         })
       }
     })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
 
@@ -234,13 +234,13 @@ app.post("/api/v1/address", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").child(datas.id).child("addresses").push({address: datas.address, primary: false}).then(()=>{
-        res.send({
+        res.send(encryptJSON({
           added: true,
           message: "Address Added!" 
-        })
+        }))
       })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});     
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));     
     }
 });
 
@@ -249,27 +249,27 @@ app.patch("/api/v1/address", (req, res)=>{
     let datas = req.body;
     if(datas.change){
       data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address}).then(()=>{
-        res.send({
+        res.send(encryptJSON({
           updated: true,
           message: 'Address Updated'
-        });
+        }));
       })
     }else{
       data.ref("accounts").child(datas.id).child("addresses").orderByChild("primary").equalTo(true).once('value', (snapshot)=>{
         snapshot.forEach((snap)=>{
           data.ref("accounts").child(datas.id).child("addresses").child(snap.key).update({primary: false}).then(()=>{
             data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address, primary: datas.primary}).then(()=>{
-              res.send({
+              res.send(encryptJSON({
                 updated: true,
                 message: 'Address Updated'
-              });
+              }));
             })
           })
         })
       })
     }
   }catch(e){
-    res.status(500).send({error: true, message: "Error"});     
+    res.status(500).send(encryptJSON({error: true, message: "Error"}));     
   }
 });
 
@@ -277,7 +277,7 @@ app.post("/api/v1/profileData", (req, res) => {
     try{
       sendProfileData(req, res);
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 });
 
@@ -288,7 +288,7 @@ app.patch("/api/v1/profileData", (req, res)=>{
       sendProfileData(req, res);
     });
   }catch(e){
-    res.status(500).send({error: true, message: "Error"});
+    res.status(500).send(encryptJSON({error: true, message: "Error"}));
   }
 })
 
@@ -302,13 +302,13 @@ app.post("/api/v1/search", (req, res)=>{
             x.push([snap.key, snap.val()]);
           }
         });
-        res.send({
+        res.send(encryptJSON({
           search:true,
           data: x
-        })
+        }))
       });
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
 
@@ -331,12 +331,12 @@ app.post("/api/v1/getData", (req, res)=>{
           })
         }
         x.reverse();
-        res.send({
+        res.send(encryptJSON({
           data: x
-        })
+        }))
       })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 
 })
@@ -345,14 +345,14 @@ app.post("/api/v1/comment", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, user: datas.user, rating: datas.rate, email: datas.email, uid: datas.uid}).then(()=>{
-        res.send({
+        res.send(encryptJSON({
           comment: datas.message,
           success: true,
           message: "Comment posted!"
-        })
+        }))
       });
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 
 })
@@ -366,10 +366,10 @@ app.get("/api/v1/comment", (req, res) =>{
         snapshot.forEach((val)=>{
           x.push([val.key, val.val()]);
         })
-        res.send({data:x});
+        res.send(encryptJSON({data:x}));
       })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
 
@@ -382,20 +382,20 @@ app.post("/api/v1/addcart", (req, res)=>{
           obj['date'] = new Date().toString();
           obj['key'] = datas.cartid;
           data.ref('cart').child(datas.id).push(obj).then(()=>{
-            res.send({
+            res.send(encryptJSON({
               added: true,
               message: 'Successfully added to Cart'
-          })
+          }))
         });
       }else{
-        res.send({
+        res.send(encryptJSON({
           added: false,
           message: 'Already in cart!'
-        })
+        }))
       }
     })
   }catch(e){
-    res.status(500).send({error: true, message: "Error"});
+    res.status(500).send(encryptJSON({error: true, message: "Error"}));
   }
 })
 app.delete("/api/v1/cart", (req, res)=>{
@@ -407,15 +407,15 @@ app.delete("/api/v1/cart", (req, res)=>{
         sn.forEach((s)=>{
           x.push([s.key, s.val()]);
         })
-        res.send({
+        res.send(encryptJSON({
           success: true,
           data: x,
           message: 'Cart Retrieved'
-        })
+        }))
       });
     })
   }catch(e){
-    res.status(500).send({error: true, message: "Error"})
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
 })
 app.patch("/api/v1/cart", (req, res)=>{
@@ -427,15 +427,15 @@ app.patch("/api/v1/cart", (req, res)=>{
         sn.forEach((s)=>{
           x.push([s.key, s.val()]);
         })
-        res.send({
+        res.send(encryptJSON({
           success: true,
           data: x,
           message: 'Cart Retrieved'
-        })
+        }))
       });
     })
   }catch(e){
-    res.status(500).send({error: true, message: "Error"})
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
 })
 
@@ -474,15 +474,15 @@ app.post("/api/v1/cart", (req,res)=>{
         sn.forEach((s)=>{
           x.push([s.key, s.val()]);
         })
-        res.send({
+        res.send(encryptJSON({
           success: true,
           data: x,
           message: 'Cart Retrieved'
-        })
+        }))
       });
     })
   }catch(e){
-    res.status(500).send({error: true, message: "Error"})
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
 })
 
@@ -490,10 +490,10 @@ app.patch("/api/v1/profileData", (req, res)=>{
     try{
       let datas = req.body;
       data.ref("accounts").child(datas.id).update(datas.data).then(()=>{
-        res.send({update: true, message:"Account Updated!"});
+        res.send(encryptJSON({update: true, message:"Account Updated!"}));
       })
     }catch(e){
-      res.status(500).send({error: true, message: "Error"});
+      res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
 
@@ -501,16 +501,14 @@ app.post("/api/v1/cartNum", (req, res)=>{
   try{
     let datas = req.body;
     data.ref("cart").child(datas.id).once('value', (snapshot)=>{
-      res.send({
+      res.send(encryptJSON({
         num: snapshot.numChildren()
-      })
+      }))
     })
   }catch(e){
-    res.status(500).send({error: true, message: "Error"})
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
 })
-
-
 
 app.listen(port, () => {
     console.log("app listening on port: ", port);
