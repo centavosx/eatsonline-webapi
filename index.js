@@ -34,6 +34,11 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500).json({error: true, message:"Error"});
 });
 
+app.post("/api/v1/guest",
+
+
+)
+
 app.post("/api/v1/guest", async(req,res)=>{
     try{
       let date = new Date();
@@ -354,7 +359,6 @@ app.post("/api/v1/comment", (req, res)=>{
 
 
 app.get("/api/v1/comment", (req, res) =>{
-
     try{
       let datas = req.body;
       data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
@@ -369,6 +373,119 @@ app.get("/api/v1/comment", (req, res) =>{
     }
 })
 
+app.post("/api/v1/addcart", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value').once('value', (snapshot)=>{
+      if(snapshot.val()===null){
+          let obj = datas.data;
+          obj['date'] = new Date().toString();
+          obj['key'] = datas.cartid;
+          data.ref('cart').child(datas.id).push(obj).then(()=>{
+            res.send({
+              added: true,
+              message: 'Successfully added to Cart'
+          })
+        });
+      }else{
+        res.send({
+          added: false,
+          message: 'Already in cart!'
+        })
+      }
+    })
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"});
+  }
+})
+app.delete("/api/v1/cart", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("cart").child(datas.id).child(datas.key).remove().then(()=>{
+      data.ref('cart').child(datas.id).once('value', (sn)=>{
+        let x = [];
+        sn.forEach((s)=>{
+          x.push([s.key, s.val()]);
+        })
+        res.send({
+          success: true,
+          data: x,
+          message: 'Cart Retrieved'
+        })
+      });
+    })
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"})
+  }
+})
+app.patch("/api/v1/cart", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("cart").child(datas.id).child(datas.key).update(datas.data).then(()=>{
+      data.ref('cart').child(datas.id).once('value', (sn)=>{
+        let x = [];
+        sn.forEach((s)=>{
+          x.push([s.key, s.val()]);
+        })
+        res.send({
+          success: true,
+          data: x,
+          message: 'Cart Retrieved'
+        })
+      });
+    })
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"})
+  }
+})
+
+app.post("/api/v1/cart", (req,res)=>{
+  try{
+    let datas = req.body;
+    data.ref('cart').child(datas.id).once('value', (snapshot)=>{
+      snapshot.forEach((snap)=>{
+        data.ref('products').orderByKey().equalTo(snap.val().key).once('value', (snapshot2)=>{
+          if(snapshot2.val()!==null){
+            snapshot2.forEach((snap2)=>{
+              if(snap2.val().numberofitems<=0){
+                data.ref('cart').child(datas.id).child(snap.key).remove();
+              }else{
+                let cartvalues = snap.val();
+                cartvalues["title"]=snap2.val().title;
+                cartvalues["seller"]=snap2.val().seller;
+                cartvalues["type"]=snap2.val().type;
+                cartvalues["desc"]=snap2.val().description;
+                cartvalues["link"]=snap2.val().link;
+                cartvalues["price"]=snap2.val().price;
+                cartvalues["discount"]=snap2.val().discount==undefined?0:snap2.val().discount;
+                cartvalues["startD"] = snap2.val().startD==undefined?null:snap2.val().startD;
+                cartvalues["endD"] = snap2.val().endD==undefined?null:snap2.val().endD;
+                data.ref('cart').child(datas.id).child(snap.key).update(cartvalues);
+              }
+            })
+          }else{
+            data.ref('cart').child(datas.id).child(snap.key).remove();
+          }
+        })
+      })
+    }).then(()=>{
+      data.ref('cart').child(datas.id).once('value', (sn)=>{
+        let x = [];
+        sn.forEach((s)=>{
+          x.push([s.key, s.val()]);
+        })
+        res.send({
+          success: true,
+          data: x,
+          message: 'Cart Retrieved'
+        })
+      });
+    })
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"})
+  }
+})
+
 app.patch("/api/v1/profileData", (req, res)=>{
     try{
       let datas = req.body;
@@ -379,6 +496,21 @@ app.patch("/api/v1/profileData", (req, res)=>{
       res.status(500).send({error: true, message: "Error"});
     }
 })
+
+app.post("/api/v1/cartNum", (req, res)=>{
+  try{
+    let datas = req.body;
+    data.ref("cart").child(datas.id).once('value', (snapshot)=>{
+      res.send({
+        num: snapshot.numChildren()
+      })
+    })
+  }catch(e){
+    res.status(500).send({error: true, message: "Error"})
+  }
+})
+
+
 
 app.listen(port, () => {
     console.log("app listening on port: ", port);
