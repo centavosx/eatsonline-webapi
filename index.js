@@ -40,7 +40,7 @@ app.post("/api/v1/guest",
 )
 
 app.post("/api/v1/guest", async(req,res)=>{
-    try{  req.body = decryptJSON(req.body.data)
+    try{ 
       let date = new Date();
       const id = await checkLastKey('accounts');
       let x = data.ref("accounts").push({
