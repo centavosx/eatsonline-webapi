@@ -401,17 +401,33 @@ app.get("/api/v1/comment", (req, res) =>{
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
-
+app.post("/api/v1/cartprod", (res,res)=>{
+  try{  req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.id = decrypt(datas.id);
+    data.ref("cart").child(datas.id).once('value', (snapshot)=>{
+      let x = [];
+      snapshot.forEach((snap)=>{
+        x.push(encrypt(snap.val().key))
+      })
+      res.send(encryptJSON({
+        data: x
+      }))
+    })
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}));
+  }
+})
 app.post("/api/v1/addcart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
     datas.cartid = decrypt(datas.cartid);
-    data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value').once('value', (snapshot)=>{
+    data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value', (snapshot)=>{
       if(snapshot.val()===null){
           let obj = datas.data;
           obj['date'] = new Date().toString();
-          obj['key'] = datas.cartid;
+          obj['key'] = datas.cartid
           data.ref('cart').child(datas.id).push(obj).then(()=>{
             res.send(encryptJSON({
               added: true,
@@ -437,7 +453,9 @@ app.delete("/api/v1/cart", (req, res)=>{
       data.ref('cart').child(datas.id).once('value', (sn)=>{
         let x = [];
         sn.forEach((s)=>{
-          x.push([s.key, s.val()]);
+          let o = s.val()
+          o.key = encrypt(o.key)
+          x.push([s.key, o]);
         })
         res.send(encryptJSON({
           success: true,
@@ -458,7 +476,9 @@ app.patch("/api/v1/cart", (req, res)=>{
       data.ref('cart').child(datas.id).once('value', (sn)=>{
         let x = [];
         sn.forEach((s)=>{
-          x.push([s.key, s.val()]);
+          let o = s.val()
+          o.key = encrypt(o.key)
+          x.push([s.key, o]);
         })
         res.send(encryptJSON({
           success: true,
