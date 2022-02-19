@@ -330,7 +330,7 @@ app.post("/api/v1/singleproduct", (req, res)=>{
         obj.adv = value
       }
       res.send(encryptJSON({
-        data: snapshot.val()
+        data: obj
       }));
     })
   }catch(e){
