@@ -401,27 +401,20 @@ app.get("/api/v1/comment", (req, res) =>{
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
-console.log(decryptJSON("U2FsdGVkX1+7t790xVbru46rRD1kHzgVexSkhjDK5pBKQFsq7V8YZX/Nxor6L2/UzKre1gYkYigVRX19s/vuSg=="
 
-))
-console.log(encryptJSON({
-  "id": "U2FsdGVkX18+s4MODw6aHbR8AeRFwO6znEA+YJ4BEqI8cLAMm5hmMe99exgW0amX",
-  "cartid": "U2FsdGVkX18j8NcHHvzlMk4J6NYe7/4FC0MjGrPCjzF5MCiWAZ4mG1rbsz2vBrur"
-}))
 app.post("/api/v1/addcart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
     datas.cartid = decrypt(datas.cartid);
-    console.log(datas.cartid)
-    console.log(datas)
     data.ref("cart").orderByKey().equalTo(datas.id).once('value', (snapshot)=>{
       if(snapshot.val()===null){
         data.ref("accounts").orderByKey().equalTo(datas.id).once('value', (snap2)=>{
           if(snap2.val()!==null){
-            let obj = {};
+            let obj = {}
             obj['date'] = new Date().toString();
             obj['key'] = datas.cartid
+            obj['amount'] = datas.amount
             data.ref('cart').child(datas.id).push(obj).then(()=>{
               res.send(encryptJSON({
                 added: true,
@@ -433,7 +426,7 @@ app.post("/api/v1/addcart", (req, res)=>{
           }
         })
       }else{
-        data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value', (snapshot)=>{
+        data.ref("cart").child(datas.id).orderByChild('key').equalTo(datas.cartid).once('value', (snapshot)=>{
           if(snapshot.val()===null){
               let obj = datas.data;
               obj['date'] = new Date().toString();
@@ -463,19 +456,28 @@ app.delete("/api/v1/cart", (req, res)=>{
     let datas = req.body;
     datas.id = decrypt(datas.id)
     data.ref("cart").child(datas.id).child(datas.key).remove().then(()=>{
-      data.ref('cart').child(datas.id).once('value', (sn)=>{
-        let x = [];
-        sn.forEach((s)=>{
-          let o = s.val()
-          o.key = encrypt(o.key)
-          x.push([s.key, o]);
-        })
-        res.send(encryptJSON({
-          success: true,
-          data: x,
-          message: 'Cart Retrieved'
-        }))
-      });
+      data.ref("products").once('value', (snapsnap)=>{
+        data.ref('cart').child(datas.id).once('value', (sn)=>{
+          let obj2 = sn.val();
+          let keys = {}
+          for(let x in obj2){
+            keys[obj2[x].key] = x;
+          }
+          let x = [];
+          snapsnap.forEach((s)=>{
+            if(s.key in keys){
+              let o = s.val()
+              o['amount'] = obj2[keys[s.key]].amount
+              x.push([keys[s.key], o])
+            }
+          })
+          res.send(encryptJSON({
+            success: true,
+            data: x,
+            message: 'Cart Retrieved'
+          }))
+        });
+      })
     })
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
@@ -486,19 +488,28 @@ app.patch("/api/v1/cart", (req, res)=>{
     let datas = req.body;
     datas.data.key = decrypt(datas.data.key)
     data.ref("cart").child(datas.id).child(datas.key).update(datas.data).then(()=>{
-      data.ref('cart').child(datas.id).once('value', (sn)=>{
-        let x = [];
-        sn.forEach((s)=>{
-          let o = s.val()
-          o.key = encrypt(o.key)
-          x.push([s.key, o]);
-        })
-        res.send(encryptJSON({
-          success: true,
-          data: x,
-          message: 'Cart Retrieved'
-        }))
-      });
+      data.ref("products").once('value', (snapsnap)=>{
+        data.ref('cart').child(datas.id).once('value', (sn)=>{
+          let obj2 = sn.val();
+          let keys = {}
+          for(let x in obj2){
+            keys[obj2[x].key] = x;
+          }
+          let x = [];
+          snapsnap.forEach((s)=>{
+            if(s.key in keys){
+              let o = s.val()
+              o['amount'] = obj2[keys[s.key]].amount
+              x.push([keys[s.key], o])
+            }
+          })
+          res.send(encryptJSON({
+            success: true,
+            data: x,
+            message: 'Cart Retrieved'
+          }))
+        });
+      })
     })
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
@@ -508,37 +519,21 @@ app.patch("/api/v1/cart", (req, res)=>{
 app.post("/api/v1/cart", (req,res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
-    data.ref('cart').child(datas.id).once('value', (snapshot)=>{
-      snapshot.forEach((snap)=>{
-        data.ref('products').orderByKey().equalTo(snap.val().key).once('value', (snapshot2)=>{
-          if(snapshot2.val()!==null){
-            snapshot2.forEach((snap2)=>{
-              if(snap2.val().numberofitems<=0){
-                data.ref('cart').child(datas.id).child(snap.key).remove();
-              }else{
-                let cartvalues = snap.val();
-                cartvalues["title"]=snap2.val().title;
-                cartvalues["seller"]=snap2.val().seller;
-                cartvalues["type"]=snap2.val().type;
-                cartvalues["desc"]=snap2.val().description;
-                cartvalues["link"]=snap2.val().link;
-                cartvalues["price"]=snap2.val().price;
-                cartvalues["discount"]=snap2.val().discount==undefined?0:snap2.val().discount;
-                cartvalues["startD"] = snap2.val().startD==undefined?null:snap2.val().startD;
-                cartvalues["endD"] = snap2.val().endD==undefined?null:snap2.val().endD;
-                data.ref('cart').child(datas.id).child(snap.key).update(cartvalues);
-              }
-            })
-          }else{
-            data.ref('cart').child(datas.id).child(snap.key).remove();
-          }
-        })
-      })
-    }).then(()=>{
+    datas.id = decrypt(datas.id)
+    data.ref("products").once('value', (snapsnap)=>{
       data.ref('cart').child(datas.id).once('value', (sn)=>{
+        let obj2 = sn.val();
+        let keys = {}
+        for(let x in obj2){
+          keys[obj2[x].key] = x;
+        }
         let x = [];
-        sn.forEach((s)=>{
-          x.push([s.key, s.val()]);
+        snapsnap.forEach((s)=>{
+          if(s.key in keys){
+            let o = s.val()
+            o['amount'] = obj2[keys[s.key]].amount
+            x.push([keys[s.key], o])
+          }
         })
         res.send(encryptJSON({
           success: true,
