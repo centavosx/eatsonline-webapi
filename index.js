@@ -320,7 +320,8 @@ app.post("/api/v1/singleproduct", (req, res)=>{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
-    datas.ref("products").child(datas.id).once('value', (snapshot)=>{
+    
+    data.ref("products").child(datas.id).once('value', (snapshot)=>{
       let obj = snapshot.val()
       if("adv" in obj){
         let value = [];
