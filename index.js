@@ -403,11 +403,11 @@ app.get("/api/v1/comment", (req, res) =>{
           snap.forEach((val)=>{
             if(val.key in objP){
               let ob = objP[val.key]
-              let key = ob.key;
-              const { ['key']: ob, ...objectToPass } = ob 
+              let key2 = ob.key;
+              const { ['key']: key, ...objectToPass } = ob 
               objectToPass['name'] = val.val().name;
               objectToPass['link'] = val.val().link; 
-              x.push([key,objectToPass]);
+              x.push([key2,objectToPass]);
             }
           })
           res.send(encryptJSON({data:x}));
