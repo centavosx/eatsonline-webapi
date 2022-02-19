@@ -372,7 +372,7 @@ app.post("/api/v1/comment", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
       datas.id = decrypt(datas.id)
-      data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, user: datas.user, rating: datas.rate, email: datas.email, uid: datas.uid}).then(()=>{
+      data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, rating: datas.rate,  id: datas.id}).then(()=>{
         res.send(encryptJSON({
           comment: datas.message,
           success: true,
@@ -390,13 +390,30 @@ app.get("/api/v1/comment", (req, res) =>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
       datas.id = decrypt(datas.id);
-      data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
-        let x = [];
-        snapshot.forEach((val)=>{
-          x.push([encrypt(val.key), val.val()]);
+      data.ref("accounts").once('value', (snap)=>{
+        data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
+          let x = [];
+          let objP = {};
+          let obj = snapshot.val();
+          for(let i in obj){
+            let objcopy = obj[i]
+            objcopy['key'] = i
+            objP[obj[i].id] = objcopy
+          }
+          snap.forEach((val)=>{
+            if(val.key in objP){
+              let ob = objP[val.key]
+              let key = ob.key;
+              const { ['key']: ob, ...objectToPass } = ob 
+              objectToPass['name'] = val.val().name;
+              objectToPass['link'] = val.val().link; 
+              x.push([key,objectToPass]);
+            }
+          })
+          res.send(encryptJSON({data:x}));
         })
-        res.send(encryptJSON({data:x}));
       })
+      
     }catch(e){
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
