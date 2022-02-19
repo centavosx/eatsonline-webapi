@@ -90,6 +90,7 @@ const email = (to, subject, code, name, expiration) =>{
 
 const sendProfileData = (req, res) =>{
     let datas = req.body;
+    datas.id = decrypt(datas.id);
     data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
       let object = {};  
       snapshot.forEach((snaps)=>{

@@ -1,4 +1,4 @@
-const fs=require("fs");
+const fs = require("fs");
 const data = require("./firebase/firebasecon");
 const cors = require('cors');
 const express = require('express');
@@ -55,7 +55,7 @@ app.post("/api/v1/guest", async(req,res)=>{
       data.ref("accounts").child(x.key).update({name: 'Guest -'+encrypt(x.key)}).then(()=>{
         res.send(encryptJSON({
           registered: true,
-          id: x.key
+          id: encrypt(x.key)
         }))
       })
     }catch(e){
@@ -127,14 +127,14 @@ app.post("/api/v1/login", (req, res)=>{
           if(x.val().password === datas.password){
             if(x.val().verified){
               res.send(encryptJSON({
-                id: x.key,
+                id: encrypt(x.key),
                 name: x.val().name,
                 login: true,
                 message: "Successful"
               }))
             }else{
               res.send(encryptJSON({
-                id: x.key,
+                id: encrypt(x.key),
                 name: x.val().name,
                 login: false,
                 message: "Not verified"
@@ -162,7 +162,7 @@ app.patch("/api/v1/reverify", (req, res)=>{
     let update = {}
     update.verificationCode = generateCode();
     update.verifyend = endDate;
-    data.ref("accounts").child(datas.id).update(update).then(()=>{
+    data.ref("accounts").child(decrypt(datas.id)).update(update).then(()=>{
       email(datas.email, "Verification Code for your Eats Online PH account", update.verificationCode, datas.name, endDate).then((x)=>{
         if(x){
           res.send(encryptJSON({
@@ -186,7 +186,7 @@ app.patch("/api/v1/reverify", (req, res)=>{
 app.patch("/api/v1/verify", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
-    data.ref("accounts").orderByKey().equalTo(datas.id).once("value", (snapshot)=>{
+    data.ref("accounts").orderByKey().equalTo(decrypt(datas.id)).once("value", (snapshot)=>{
       if(snapshot.val()==null){
         res.send(encryptJSON({
           verified: false,
@@ -233,7 +233,7 @@ app.patch("/api/v1/verify", (req, res)=>{
 app.post("/api/v1/address", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
-      data.ref("accounts").child(datas.id).child("addresses").push({address: datas.address, primary: false}).then(()=>{
+      data.ref("accounts").child(decrypt(datas.id)).child("addresses").push({address: datas.address, primary: false}).then(()=>{
         res.send(encryptJSON({
           added: true,
           message: "Address Added!" 
@@ -247,6 +247,7 @@ app.post("/api/v1/address", (req, res)=>{
 app.patch("/api/v1/address", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    datas.id = decrypt(datas.id);
     if(datas.change){
       data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address}).then(()=>{
         res.send(encryptJSON({
@@ -284,6 +285,7 @@ app.post("/api/v1/profileData", (req, res) => {
 app.patch("/api/v1/profileData", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    datas.id = decrypt(datas.id);
     data.ref("accounts").child(datas.id).update(datas.updateData).then(()=>{
       sendProfileData(req, res);
     });
@@ -295,6 +297,7 @@ app.patch("/api/v1/profileData", (req, res)=>{
 app.post("/api/v1/search", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
+
       data.ref(datas.reference).orderByChild(datas.data).startAt(datas.value.toUpperCase()).endAt(datas.value.toLowerCase()+ "\uf8ff").once("value", (snapshot) =>{
         let x = [];
         snapshot.forEach((snap)=>{
@@ -321,13 +324,13 @@ app.post("/api/v1/getData", (req, res)=>{
           let i = 0;
           snapshot.forEach((snap)=>{
             if(i >= (snapshot.numChildren()-datas.index[1]) && i <= (snapshot.numChildren() - datas.index[0])){
-              x.push([snap.key, snap.val()]);
+              x.push([encrypt(snap.key), snap.val()]);
             }
             i++;
           })
         }else{
           snapshot.forEach((snap)=>{
-            x.push([snap.key, snap.val()]);
+            x.push([encrypt(snap.key), snap.val()]);
           })
         }
         x.reverse();
@@ -344,6 +347,7 @@ app.post("/api/v1/getData", (req, res)=>{
 app.post("/api/v1/comment", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
+      datas.id = decrypt(datas.id)
       data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, user: datas.user, rating: datas.rate, email: datas.email, uid: datas.uid}).then(()=>{
         res.send(encryptJSON({
           comment: datas.message,
@@ -361,10 +365,11 @@ app.post("/api/v1/comment", (req, res)=>{
 app.get("/api/v1/comment", (req, res) =>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
+      datas.id = decrypt(datas.id);
       data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
         let x = [];
         snapshot.forEach((val)=>{
-          x.push([val.key, val.val()]);
+          x.push([encrypt(val.key), val.val()]);
         })
         res.send(encryptJSON({data:x}));
       })
@@ -376,6 +381,8 @@ app.get("/api/v1/comment", (req, res) =>{
 app.post("/api/v1/addcart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    datas.id = decrypt(datas.id);
+    datas.cartid = decrypt(datas.cartid);
     data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value').once('value', (snapshot)=>{
       if(snapshot.val()===null){
           let obj = datas.data;
@@ -401,6 +408,7 @@ app.post("/api/v1/addcart", (req, res)=>{
 app.delete("/api/v1/cart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    datas.id = decrypt(datas.id)
     data.ref("cart").child(datas.id).child(datas.key).remove().then(()=>{
       data.ref('cart').child(datas.id).once('value', (sn)=>{
         let x = [];
@@ -421,6 +429,7 @@ app.delete("/api/v1/cart", (req, res)=>{
 app.patch("/api/v1/cart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    datas.data.key = decrypt(datas.data.key)
     data.ref("cart").child(datas.id).child(datas.key).update(datas.data).then(()=>{
       data.ref('cart').child(datas.id).once('value', (sn)=>{
         let x = [];
@@ -489,6 +498,7 @@ app.post("/api/v1/cart", (req,res)=>{
 app.patch("/api/v1/profileData", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
+      datas.id = decrypt(datas.id)
       data.ref("accounts").child(datas.id).update(datas.data).then(()=>{
         res.send(encryptJSON({update: true, message:"Account Updated!"}));
       })
@@ -500,6 +510,7 @@ app.patch("/api/v1/profileData", (req, res)=>{
 app.post("/api/v1/cartNum", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    datas.id = decrypt(datas.id);
     data.ref("cart").child(datas.id).once('value', (snapshot)=>{
       res.send(encryptJSON({
         num: snapshot.numChildren()
