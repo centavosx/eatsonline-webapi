@@ -302,7 +302,7 @@ app.post("/api/v1/search", (req, res)=>{
         let x = [];
         snapshot.forEach((snap)=>{
           if(snap.val()[datas.data].toLowerCase().includes(datas.value.toLowerCase())){
-            x.push([snap.key, snap.val()]);
+            x.push([encrypt(snap.key), snap.val()]);
           }
         });
         res.send(encryptJSON({
