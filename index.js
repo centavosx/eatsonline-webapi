@@ -30,6 +30,7 @@ const port = process.env.PORT || 8001;
     res.setHeader('Access-Control-Allow-Credentials', true);
     next();
 });
+
 app.use(function(err, req, res, next) {
   res.status(err.status || 500).json(encryptJSON({error: true, message:"Error"}));
 });
@@ -320,7 +321,6 @@ app.post("/api/v1/singleproduct", (req, res)=>{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
-    
     data.ref("products").child(datas.id).once('value', (snapshot)=>{
       let obj = snapshot.val()
       if("adv" in obj){
@@ -401,7 +401,7 @@ app.get("/api/v1/comment", (req, res) =>{
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
-app.post("/api/v1/cartprod", (res,res)=>{
+app.post("/api/v1/cartprod", (req,res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
