@@ -315,6 +315,29 @@ app.post("/api/v1/search", (req, res)=>{
     }
 })
 
+app.post("/api/v1/singleproduct", (req, res)=>{
+  try{  
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.id = decrypt(datas.id);
+    datas.ref("products").child(datas.id).once('value', (snapshot)=>{
+      let obj = snapshot.val()
+      if("adv" in obj){
+        let value = [];
+        for(let i in obj.adv){
+          value.push(obj.adv[i].date);
+        }
+        obj.adv = value
+      }
+      res.send(encryptJSON({
+        data: snapshot.val()
+      }));
+    })
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}));
+  }
+})
+
 app.post("/api/v1/getData", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
