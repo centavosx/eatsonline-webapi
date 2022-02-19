@@ -418,6 +418,26 @@ app.post("/api/v1/cartprod", (req,res)=>{
     res.status(500).send(encryptJSON({error: true, message: "Error"}));
   }
 })
+app.post("/api/v1/cartsingleprod", (req,res)=>{
+  try{  req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.id = decrypt(datas.id);
+    datas.prod = decrypt(datas.prod)
+    data.ref("cart").child(datas.id).orderByChild('key').equalTo(datas.prod).once('value', (snapshot)=>{
+      if(snapshot.val()==null){
+        res.send(encryptJSON({
+          cart: false
+        }));
+      }else{
+        res.send(encryptJSON({
+          cart: true
+        }));
+      }
+    })
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}));
+  }
+})
 app.post("/api/v1/addcart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
@@ -429,10 +449,17 @@ app.post("/api/v1/addcart", (req, res)=>{
           obj['date'] = new Date().toString();
           obj['key'] = datas.cartid
           data.ref('cart').child(datas.id).push(obj).then(()=>{
-            res.send(encryptJSON({
-              added: true,
-              message: 'Successfully added to Cart'
-          }))
+            data.ref("cart").child(datas.id).once('value', (snapshot)=>{
+              let x = [];
+              snapshot.forEach((snap)=>{
+                x.push(encrypt(snap.val().key))
+              })
+              res.send(encryptJSON({
+                data: x,
+                added: true,
+                message: 'Successfully added to Cart'
+            }))
+            })
         });
       }else{
         res.send(encryptJSON({
