@@ -428,9 +428,10 @@ app.post("/api/v1/addcart", (req, res)=>{
       }else{
         data.ref("cart").child(datas.id).orderByChild('key').equalTo(datas.cartid).once('value', (snapshot)=>{
           if(snapshot.val()===null){
-              let obj = datas.data;
+              let obj = {};
               obj['date'] = new Date().toString();
               obj['key'] = datas.cartid
+              obj['amount'] = datas.amount
               data.ref('cart').child(datas.id).push(obj).then(()=>{
                 res.send(encryptJSON({
                   added: true,
