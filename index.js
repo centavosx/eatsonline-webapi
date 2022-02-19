@@ -401,75 +401,61 @@ app.get("/api/v1/comment", (req, res) =>{
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
 })
-app.post("/api/v1/cartprod", (req,res)=>{
-  try{  req.body = decryptJSON(req.body.data)
-    let datas = req.body;
-    datas.id = decrypt(datas.id);
-    data.ref("cart").child(datas.id).once('value', (snapshot)=>{
-      let x = [];
-      snapshot.forEach((snap)=>{
-        x.push(encrypt(snap.val().key))
-      })
-      res.send(encryptJSON({
-        data: x
-      }))
-    })
-  }catch(e){
-    res.status(500).send(encryptJSON({error: true, message: "Error"}));
-  }
-})
-app.post("/api/v1/cartsingleprod", (req,res)=>{
-  try{  req.body = decryptJSON(req.body.data)
-    let datas = req.body;
-    datas.id = decrypt(datas.id);
-    datas.prod = decrypt(datas.prod)
-    data.ref("cart").child(datas.id).orderByChild('key').equalTo(datas.prod).once('value', (snapshot)=>{
-      if(snapshot.val()==null){
-        res.send(encryptJSON({
-          cart: false
-        }));
-      }else{
-        res.send(encryptJSON({
-          cart: true
-        }));
-      }
-    })
-  }catch(e){
-    res.status(500).send(encryptJSON({error: true, message: "Error"}));
-  }
-})
+console.log(decryptJSON("U2FsdGVkX1+7t790xVbru46rRD1kHzgVexSkhjDK5pBKQFsq7V8YZX/Nxor6L2/UzKre1gYkYigVRX19s/vuSg=="
+
+))
+console.log(encryptJSON({
+  "id": "U2FsdGVkX18+s4MODw6aHbR8AeRFwO6znEA+YJ4BEqI8cLAMm5hmMe99exgW0amX",
+  "cartid": "U2FsdGVkX18j8NcHHvzlMk4J6NYe7/4FC0MjGrPCjzF5MCiWAZ4mG1rbsz2vBrur"
+}))
 app.post("/api/v1/addcart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
     datas.cartid = decrypt(datas.cartid);
-    data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value', (snapshot)=>{
+    console.log(datas.cartid)
+    console.log(datas)
+    data.ref("cart").orderByKey().equalTo(datas.id).once('value', (snapshot)=>{
       if(snapshot.val()===null){
-          let obj = datas.data;
-          obj['date'] = new Date().toString();
-          obj['key'] = datas.cartid
-          data.ref('cart').child(datas.id).push(obj).then(()=>{
-            data.ref("cart").child(datas.id).once('value', (snapshot)=>{
-              let x = [];
-              snapshot.forEach((snap)=>{
-                x.push(encrypt(snap.val().key))
-              })
+        data.ref("accounts").orderByKey().equalTo(datas.id).once('value', (snap2)=>{
+          if(snap2.val()!==null){
+            let obj = {};
+            obj['date'] = new Date().toString();
+            obj['key'] = datas.cartid
+            data.ref('cart').child(datas.id).push(obj).then(()=>{
               res.send(encryptJSON({
-                data: x,
                 added: true,
                 message: 'Successfully added to Cart'
-            }))
-            })
-        });
+              }))
+            });
+          }else{
+            res.status(500).send(encryptJSON({error: true, message: "Error", e: e}));
+          }
+        })
       }else{
-        res.send(encryptJSON({
-          added: false,
-          message: 'Already in cart!'
-        }))
+        data.ref("cart").child(datas.id).orderByKey('key').equalTo(datas.cartid).once('value', (snapshot)=>{
+          if(snapshot.val()===null){
+              let obj = datas.data;
+              obj['date'] = new Date().toString();
+              obj['key'] = datas.cartid
+              data.ref('cart').child(datas.id).push(obj).then(()=>{
+                res.send(encryptJSON({
+                  added: true,
+                  message: 'Successfully added to Cart'
+              }))
+            });
+          }else{
+            res.send(encryptJSON({
+              added: false,
+              message: 'Already in cart!'
+            }))
+          }
+        })
       }
     })
+
   }catch(e){
-    res.status(500).send(encryptJSON({error: true, message: "Error"}));
+    res.status(500).send(encryptJSON({error: true, message: "Error", e: e}));
   }
 })
 app.delete("/api/v1/cart", (req, res)=>{
