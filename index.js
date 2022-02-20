@@ -32,7 +32,7 @@ const port = process.env.PORT || 8001;
 });
 
 app.use(function(err, req, res, next) {
-  res.status(err.status || 500).json(encryptJSON({error: true, message:"Error"}));
+  res.json(encryptJSON({error: true, message:"Error"}));
 });
 
 app.post("/api/v1/guest",
@@ -318,8 +318,10 @@ app.post("/api/v1/search", (req, res)=>{
 
 app.post("/api/v1/singleproduct", (req, res)=>{
   try{  
+
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    if(datas.id != null){
     datas.id = decrypt(datas.id);
     data.ref("products").child(datas.id).once('value', (snapshot)=>{
       let obj = snapshot.val()
@@ -334,6 +336,9 @@ app.post("/api/v1/singleproduct", (req, res)=>{
         data: obj
       }));
     })
+  }else{
+    res.status(200);
+  }
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}));
   }
@@ -372,52 +377,42 @@ app.post("/api/v1/comment", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
       datas.id = decrypt(datas.id)
-      data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, rating: datas.rate,  id: datas.id}).then(()=>{
-        res.send(encryptJSON({
-          comment: datas.message,
-          success: true,
-          message: "Comment posted!"
-        }))
-      });
-    }catch(e){
-      res.status(500).send(encryptJSON({error: true, message: "Error"}));
-    }
-
-})
-
-
-app.get("/api/v1/comment", (req, res) =>{
-    try{  req.body = decryptJSON(req.body.data)
-      let datas = req.body;
-      datas.id = decrypt(datas.id);
-      data.ref("accounts").once('value', (snap)=>{
-        data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
-          let x = [];
-          let objP = {};
-          let obj = snapshot.val();
-          for(let i in obj){
-            let objcopy = obj[i]
-            objcopy['key'] = i
-            objP[obj[i].id] = objcopy
-          }
-          snap.forEach((val)=>{
-            if(val.key in objP){
-              let ob = objP[val.key]
-              let key2 = ob.key;
-              const { ['key']: key, ...objectToPass } = ob 
-              objectToPass['name'] = val.val().name;
-              objectToPass['link'] = val.val().link; 
-              x.push([key2,objectToPass]);
-            }
-          })
-          res.send(encryptJSON({data:x}));
-        })
-      })
       
+      if(!datas.get){
+        datas.uid = decrypt(datas.uid)
+        data.ref("accounts").orderByKey().equalTo(datas.uid).once('value', (snap)=>{
+          if(snap.val()!==null){
+            data.ref("products").child(datas.id).child('comments').push({date: new Date().toString(), message: datas.message, rating: datas.rate,  id: datas.uid}).then(()=>{
+              res.send(encryptJSON({
+                success: true,
+                message: "Comment posted!"
+              }))
+            });
+          }
+        })
+      }else{
+        data.ref("accounts").once('value', (snap)=>{
+          data.ref("products").child(datas.id).child("comments").once("value", (snapshot)=>{
+            let x = [];
+            snapshot.forEach((val)=>{
+              if(val.val().id in snap.val()){
+                let ob = val.val()
+                ob['name'] = snap.val()[val.val().id].name;
+                ob['link'] = snap.val()[val.val().id].link; 
+                ob['email'] = snap.val()[val.val().id].email;
+                x.push([val.key,ob]);
+              }
+            })
+            res.send(encryptJSON({data:x}));
+          })
+        })
+      }
     }catch(e){
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
+
 })
+
 
 app.post("/api/v1/addcart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
