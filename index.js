@@ -553,15 +553,10 @@ app.delete("/api/v1/cart", (req, res)=>{
 })
 app.patch("/api/v1/cart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
+    
     let datas = req.body;
     datas.id = decrypt(datas.id)
-    new Promise((resolve, reject)=>{
-      let obj = datas.data;
-      for(let x in obj){
-        data.ref("cart").child(datas.id).child(x).update({amount: parseInt(obj[x])});
-      }
-      resolve(true);
-    }).then(()=>
+   data.ref('cart').child(datas.id).set(datas.data).then(()=>
       data.ref("products").once('value', (snapsnap)=>{
         data.ref('cart').child(datas.id).once('value', (sn)=>{
           let obj2 = sn.val();
