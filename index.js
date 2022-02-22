@@ -393,7 +393,19 @@ app.post("/api/v1/getData", (req, res)=>{
           })
         }else{
           snapshot.forEach((snap)=>{
-            x.push([encrypt(snap.key), snap.val()]);
+            let obj = snap.val()
+              if("comments" in obj){
+                let avgrate = 0;
+                let add = 0;
+                for(let i in obj.comments){
+                  add+=parseInt(obj.comments[i].rating)
+                  avgrate++;
+                }
+                obj.comments = parseInt(add/avgrate)
+              }else{
+                obj.comments = 0;
+              }
+              x.push([encrypt(snap.key), obj]);
           })
         }
         x.reverse();
