@@ -303,7 +303,19 @@ app.post("/api/v1/search", (req, res)=>{
         let x = [];
         snapshot.forEach((snap)=>{
           if(snap.val()[datas.data].toLowerCase().includes(datas.value.toLowerCase())){
-            x.push([encrypt(snap.key), snap.val()]);
+            let obj = snap.val();
+            if("comments" in obj){
+              let avgrate = 0;
+              let add = 0;
+              for(let i in obj.comments){
+                add+=parseInt(obj.comments[i].rating)
+                avgrate++;
+              }
+              obj.comments = parseInt(add/avgrate)
+            }else{
+              obj.comments = 0;
+            }
+            x.push([encrypt(snap.key), obj]);
           }
         });
         res.send(encryptJSON({
@@ -318,7 +330,6 @@ app.post("/api/v1/search", (req, res)=>{
 
 app.post("/api/v1/singleproduct", (req, res)=>{
   try{  
-
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
     if(datas.id != null){
@@ -331,6 +342,17 @@ app.post("/api/v1/singleproduct", (req, res)=>{
           value.push(obj.adv[i].date);
         }
         obj.adv = value
+      }
+      if("comments" in obj){
+        let avgrate = 0;
+        let add = 0;
+        for(let i in obj.comments){
+          add+=parseInt(obj.comments[i].rating)
+          avgrate++;
+        }
+        obj.comments = parseInt(add/avgrate)
+      }else{
+        obj.comments = 0;
       }
       res.send(encryptJSON({
         data: obj
@@ -353,7 +375,19 @@ app.post("/api/v1/getData", (req, res)=>{
           let i = 0;
           snapshot.forEach((snap)=>{
             if(i >= (snapshot.numChildren()-datas.index[1]) && i <= (snapshot.numChildren() - datas.index[0])){
-              x.push([encrypt(snap.key), snap.val()]);
+              let obj = snap.val()
+              if("comments" in obj){
+                let avgrate = 0;
+                let add = 0;
+                for(let i in obj.comments){
+                  add+=parseInt(obj.comments[i].rating)
+                  avgrate++;
+                }
+                obj.comments = parseInt(add/avgrate)
+              }else{
+                obj.comments = 0;
+              }
+              x.push([encrypt(snap.key), obj]);
             }
             i++;
           })
@@ -410,7 +444,6 @@ app.post("/api/v1/comment", (req, res)=>{
     }catch(e){
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
-
 })
 
 
@@ -481,6 +514,17 @@ app.delete("/api/v1/cart", (req, res)=>{
             if(s.key in keys){
               let o = s.val()
               o['amount'] = obj2[keys[s.key]].amount
+              if("comments" in o){
+                let avgrate = 0;
+                let add = 0;
+                for(let i in o.comments){
+                  add+=parseInt(o.comments[i].rating)
+                  avgrate++;
+                }
+                o.comments = parseInt(add/avgrate)
+              }else{
+                o.comments = 0;
+              } 
               x.push([keys[s.key], o])
             }
           })
@@ -513,6 +557,17 @@ app.patch("/api/v1/cart", (req, res)=>{
             if(s.key in keys){
               let o = s.val()
               o['amount'] = obj2[keys[s.key]].amount
+              if("comments" in o){
+                let avgrate = 0;
+                let add = 0;
+                for(let i in o.comments){
+                  add+=parseInt(o.comments[i].rating)
+                  avgrate++;
+                }
+                o.comments = parseInt(add/avgrate)
+              }else{
+                o.comments = 0;
+              }
               x.push([keys[s.key], o])
             }
           })
@@ -545,6 +600,17 @@ app.post("/api/v1/cart", (req,res)=>{
           if(s.key in keys){
             let o = s.val()
             o['amount'] = obj2[keys[s.key]].amount
+            if("comments" in o){
+              let avgrate = 0;
+              let add = 0;
+              for(let i in o.comments){
+                add+=parseInt(o.comments[i].rating)
+                avgrate++;
+              }
+              o.comments = parseInt(add/avgrate)
+            }else{
+              o.comments = 0;
+            } 
             x.push([keys[s.key], o])
           }
         })
