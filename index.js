@@ -524,6 +524,8 @@ app.delete("/api/v1/cart", (req, res)=>{
           snapsnap.forEach((s)=>{
             if(s.key in keys){
               let o = s.val()
+              o.key = encrypt(s.key);
+              o.date = obj2[keys[s.key]].date
               o['amount'] = obj2[keys[s.key]].amount
               if("comments" in o){
                 let avgrate = 0;
@@ -556,6 +558,7 @@ app.patch("/api/v1/cart", (req, res)=>{
     
     let datas = req.body;
     datas.id = decrypt(datas.id)
+    datas.data.key = decrypt(datas.data.key)
    data.ref('cart').child(datas.id).set(datas.data).then(()=>
       data.ref("products").once('value', (snapsnap)=>{
         data.ref('cart').child(datas.id).once('value', (sn)=>{
@@ -568,6 +571,8 @@ app.patch("/api/v1/cart", (req, res)=>{
           snapsnap.forEach((s)=>{
             if(s.key in keys){
               let o = s.val()
+              o.key = encrypt(s.key);
+              o.date = obj2[keys[s.key]].date
               o['amount'] = obj2[keys[s.key]].amount
               if("comments" in o){
                 let avgrate = 0;
@@ -611,6 +616,8 @@ app.post("/api/v1/cart", (req,res)=>{
         snapsnap.forEach((s)=>{
           if(s.key in keys){
             let o = s.val()
+            o.key = encrypt(s.key);
+            o.date = obj2[keys[s.key]].date
             o['amount'] = obj2[keys[s.key]].amount
             if("comments" in o){
               let avgrate = 0;
