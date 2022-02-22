@@ -35,10 +35,9 @@ app.use(function(err, req, res, next) {
   res.json(encryptJSON({error: true, message:"Error"}));
 });
 
-app.post("/api/v1/guest",
+app.post("/api/v1/guest", (req, res)=>{
 
-
-)
+})
 
 app.post("/api/v1/guest", async(req,res)=>{
     try{ 
@@ -556,7 +555,13 @@ app.patch("/api/v1/cart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id)
-    data.ref("cart").child(datas.id).child(datas.key).update(datas.data).then(()=>{
+    new Promise((resolve, reject)=>{
+      let obj = datas.data;
+      for(let x in obj){
+        data.ref("cart").child(datas.id).child(x).update({amount: parseInt(obj[x])});
+      }
+      resolve(true);
+    }).then(()=>
       data.ref("products").once('value', (snapsnap)=>{
         data.ref('cart').child(datas.id).once('value', (sn)=>{
           let obj2 = sn.val();
@@ -590,7 +595,7 @@ app.patch("/api/v1/cart", (req, res)=>{
           }))
         });
       })
-    })
+    )
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
