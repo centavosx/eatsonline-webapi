@@ -558,7 +558,10 @@ app.patch("/api/v1/cart", (req, res)=>{
     
     let datas = req.body;
     datas.id = decrypt(datas.id)
-    datas.data.key = decrypt(datas.data.key)
+    for(let i in datas.data){
+      datas.data[i].key = decrypt(datas.data[i].key)
+    }
+    console.log(datas.data)
    data.ref('cart').child(datas.id).set(datas.data).then(()=>
       data.ref("products").once('value', (snapsnap)=>{
         data.ref('cart').child(datas.id).once('value', (sn)=>{
