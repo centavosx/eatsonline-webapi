@@ -35,9 +35,6 @@ app.use(function(err, req, res, next) {
   res.json(encryptJSON({error: true, message:"Error"}));
 });
 
-app.post("/api/v1/guest", (req, res)=>{
-
-})
 
 app.post("/api/v1/guest", async(req,res)=>{
     try{ 
@@ -52,6 +49,7 @@ app.post("/api/v1/guest", async(req,res)=>{
         id: id,
         verified: true
       });
+
       data.ref("accounts").child(x.key).update({name: 'Guest -'+encrypt(x.key)}).then(()=>{
         res.send(encryptJSON({
           registered: true,
