@@ -714,7 +714,7 @@ app.post("/api/v1/transact", async(req, res)=>{
   }
 })
 
-app.post("/api/v1/transact", (req, res)=>{
+app.post("/api/v1/chat", (req, res)=>{
   try{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
