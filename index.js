@@ -672,6 +672,78 @@ app.post("/api/v1/cartNum", (req, res)=>{
   }
 })
 
+app.post("/api/v1/transact", async(req, res)=>{
+  try{
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.userid = decrypt(datas.userid);
+    let xarr = [];
+    let send = false;
+    for(let x of datas.items){
+      data.ref("products").once("value", (snapshot)=>{
+        let num = snapshot.val().numberofitems;
+        if(num - x[1].amount>=0 && !send){
+          data.ref("products").child(decrypt(x[0])).update({num: num - x[1].amount});
+        }else{
+          send = true;
+          xarr.push(x[1].title + " is too many, please reduce the amount to continue");
+        }
+      })
+    }
+    if(send){
+      res.send(encryptJSON({
+        completed: false,
+        message: xarr
+      }));
+    }else{
+      data.ref("transactions").push(datas).then(()=>{
+        res.send(encryptJSON({
+          completed: true
+        }))
+      })
+    }
+
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
+
+app.post("/api/v1/transact", (req, res)=>{
+  try{
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.id = decrypt(datas.id);
+    if(datas.what == "get"){
+      data.ref("chat").child(datas.id).once("value", (snapshot)=>{
+        let send = [];
+        snapshot.forEach((val)=>{
+          data.ref("chat").child(datas.id).child(val.key).update({readbyu: true});
+          send.push([val.key, val.val()]);
+        })
+        res.send(encryptJSON({
+          data: send
+        }));
+      });
+    }else{
+      let message = {
+        date: new Date().toString(),
+        message: datas.message,
+        readbya: false,
+        readbyu: true,
+        who: "user"
+      }
+      data.ref("chat").child(datas.id).push(message).then(()=>{
+        res.send(encryptJSON({
+          sent: true
+        }));
+      })
+    }
+
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
+
 app.listen(port, () => {
     console.log("app listening on port: ", port);
 })
