@@ -506,11 +506,13 @@ app.post("/api/v1/addcart", (req, res)=>{
     res.status(500).send(encryptJSON({error: true, message: "Error", e: e}));
   }
 })
-app.delete("/api/v1/cart", (req, res)=>{
+app.delete("/api/v1/cart", async (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id)
-    data.ref("cart").child(datas.id).child(datas.key).remove().then(()=>{
+    for(let x of data.keys){
+      await data.ref("cart").child(datas.id).child(decrypt(x)).remove();
+    }
       data.ref("products").once('value', (snapsnap)=>{
         data.ref('cart').child(datas.id).once('value', (sn)=>{
           let obj2 = sn.val();
@@ -546,7 +548,6 @@ app.delete("/api/v1/cart", (req, res)=>{
           }))
         });
       })
-    })
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
@@ -745,6 +746,16 @@ app.post("/api/v1/chat", (req, res)=>{
       })
     }
 
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
+
+app.post("/api/v1/getTransactions", (req, res)=>{
+  try{
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.userid = decrypt(datas.userid);
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
