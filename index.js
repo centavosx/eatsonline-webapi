@@ -560,41 +560,10 @@ app.patch("/api/v1/cart", (req, res)=>{
       datas.data[i].key = decrypt(datas.data[i].key)
     }
    data.ref('cart').child(datas.id).set(datas.data).then(()=>
-      data.ref("products").once('value', (snapsnap)=>{
-        data.ref('cart').child(datas.id).once('value', (sn)=>{
-          let obj2 = sn.val();
-          let keys = {}
-          for(let x in obj2){
-            keys[obj2[x].key] = x;
-          }
-          let x = [];
-          snapsnap.forEach((s)=>{
-            if(s.key in keys){
-              let o = s.val()
-              o.key = encrypt(s.key);
-              o.date = obj2[keys[s.key]].date
-              o['amount'] = obj2[keys[s.key]].amount
-              if("comments" in o){
-                let avgrate = 0;
-                let add = 0;
-                for(let i in o.comments){
-                  add+=parseInt(o.comments[i].rating)
-                  avgrate++;
-                }
-                o.comments = parseInt(add/avgrate)
-              }else{
-                o.comments = 0;
-              }
-              x.push([keys[s.key], o])
-            }
-          })
           res.send(encryptJSON({
             success: true,
-            data: x,
             message: 'Cart Retrieved'
           }))
-        });
-      })
     )
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
@@ -619,6 +588,13 @@ app.post("/api/v1/cart", (req,res)=>{
             o.key = encrypt(s.key);
             o.date = obj2[keys[s.key]].date
             o['amount'] = obj2[keys[s.key]].amount
+            if("adv" in o){
+              let value = [];
+              for(let val in o.adv){
+                value.push(o.adv[val].date)
+              }
+              o.adv = value;
+            }
             if("comments" in o){
               let avgrate = 0;
               let add = 0;
