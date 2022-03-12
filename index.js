@@ -554,13 +554,11 @@ app.delete("/api/v1/cart", async (req, res)=>{
 })
 app.patch("/api/v1/cart", (req, res)=>{
   try{  req.body = decryptJSON(req.body.data)
-    
     let datas = req.body;
     datas.id = decrypt(datas.id)
     for(let i in datas.data){
       datas.data[i].key = decrypt(datas.data[i].key)
     }
-    console.log(datas.data)
    data.ref('cart').child(datas.id).set(datas.data).then(()=>
       data.ref("products").once('value', (snapsnap)=>{
         data.ref('cart').child(datas.id).once('value', (sn)=>{
