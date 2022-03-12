@@ -527,6 +527,13 @@ app.delete("/api/v1/cart", async (req, res)=>{
               o.key = encrypt(s.key);
               o.date = obj2[keys[s.key]].date
               o['amount'] = obj2[keys[s.key]].amount
+              if("adv" in o){
+                let value = [];
+                for(let val in o.adv){
+                  value.push(o.adv[val].date)
+                }
+                o.adv = value;
+              }
               if("comments" in o){
                 let avgrate = 0;
                 let add = 0;
