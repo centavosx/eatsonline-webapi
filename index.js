@@ -231,11 +231,9 @@ app.patch("/api/v1/verify", (req, res)=>{
 app.post("/api/v1/address", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
-      data.ref("accounts").child(decrypt(datas.id)).child("addresses").push({address: datas.address, primary: false}).then(()=>{
-        res.send(encryptJSON({
-          added: true,
-          message: "Address Added!" 
-        }))
+      datas.id = decrypt(datas.id);
+      data.ref("accounts").child(datas.id).child("addresses").push({address: datas.address, primary: false}).then(()=>{
+       sendProfileData(datas, res); 
       })
     }catch(e){
       res.status(500).send(encryptJSON({error: true, message: "Error"}));     
@@ -248,20 +246,14 @@ app.patch("/api/v1/address", (req, res)=>{
     datas.id = decrypt(datas.id);
     if(datas.change){
       data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address}).then(()=>{
-        res.send(encryptJSON({
-          updated: true,
-          message: 'Address Updated'
-        }));
+        sendProfileData(datas, res); 
       })
     }else{
       data.ref("accounts").child(datas.id).child("addresses").orderByChild("primary").equalTo(true).once('value', (snapshot)=>{
         snapshot.forEach((snap)=>{
           data.ref("accounts").child(datas.id).child("addresses").child(snap.key).update({primary: false}).then(()=>{
             data.ref("accounts").child(datas.id).child("addresses").child(datas.addressId).update({address: datas.address, primary: datas.primary}).then(()=>{
-              res.send(encryptJSON({
-                updated: true,
-                message: 'Address Updated'
-              }));
+              sendProfileData(datas, res); 
             })
           })
         })
@@ -274,7 +266,9 @@ app.patch("/api/v1/address", (req, res)=>{
 
 app.post("/api/v1/profileData", (req, res) => {
     try{  req.body = decryptJSON(req.body.data)
-      sendProfileData(req, res);
+      let datas = req.body;
+      datas.id = decrypt(datas.id);
+      sendProfileData(datas, res);
     }catch(e){
       res.status(500).send(encryptJSON({error: true, message: "Error"}));
     }
@@ -285,7 +279,7 @@ app.patch("/api/v1/profileData", (req, res)=>{
     let datas = req.body;
     datas.id = decrypt(datas.id);
     data.ref("accounts").child(datas.id).update(datas.updateData).then(()=>{
-      sendProfileData(req, res);
+      sendProfileData(datas, res);
     });
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}));
@@ -593,7 +587,6 @@ app.post("/api/v1/cart", (req,res)=>{
           if(s.key in keys){
             let o = s.val()
             o.key = encrypt(s.key);
-            o.date = obj2[keys[s.key]].date
             o['amount'] = obj2[keys[s.key]].amount
             if("adv" in o){
               let value = [];
