@@ -655,34 +655,43 @@ app.post("/api/v1/transact", async(req, res)=>{
     let xarr = [];
     let send = [];
     let dataV = [];
-    for(let x of datas.items){
-      let k = decrypt(x[1].key);
-      await data.ref("products").child(k).once("value", (snapshot)=>{
-        let num = snapshot.val().numberofitems;
-        if(num - x[1].amount>=0){
-          dataV.push([k, {num: num - x[1].amount}]);
-          send.push(true);
-        }else{
-          send.push(false);
-          xarr.push(x[1].title + " is too many, please reduce the amount to continue");
-        }
-      })
-    }
-    if(send.includes(false)){
-      res.send(encryptJSON({
-        completed: false,
-        message: xarr
-      }));
-    }else{
-      for(let x of dataV){
-        await data.ref("products").child(x[0]).update(x[1]);
+    data.ref("accounts").child(datas.userid).once('value', (snap)=>{
+      for(let x of datas.items){
+        let k = decrypt(x[1].key);
+        await data.ref("products").child(k).once("value", (snapshot)=>{
+          let num = snapshot.val().numberofitems;
+          if(num - x[1].amount>=0){
+            dataV.push([k, {num: num - x[1].amount}]);
+            send.push(true);
+          }else{
+            send.push(false);
+            xarr.push(x[1].title + " is too many, please reduce the amount to continue");
+          }
+        })
       }
-      data.ref("transactions").push(datas).then(()=>{
+      if(send.includes(false)){
         res.send(encryptJSON({
-          completed: true
-        }))
-      })
-    }
+          completed: false,
+          message: xarr
+        }));
+      }else{
+        for(let x of dataV){
+          await data.ref("products").child(x[0]).update(x[1]);
+        }
+        datas.uid = snap.val().id;
+        datas.pstatus = "Not Paid"
+        datas.status = "Pending"
+        datas.phone = snap.val().phoneNumber;
+        datas.dateBought = new Date().toString();
+        let id  = data.ref("transactions").push(datas);
+        let valofup = data.ref("transactions").child(id.key).update({id: id.key.substring(1)}).then(()=>{
+          res.send(encryptJSON({
+            completed: true,
+            val: valofup.val()
+          }))
+        })
+      }
+    })
 
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
