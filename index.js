@@ -655,7 +655,7 @@ app.post("/api/v1/transact", async(req, res)=>{
     let xarr = [];
     let send = [];
     let dataV = [];
-    data.ref("accounts").child(datas.userid).once('value', (snap)=>{
+    data.ref("accounts").child(datas.userid).once('value', async(snap)=>{
       for(let x of datas.items){
         let k = decrypt(x[1].key);
         await data.ref("products").child(k).once("value", (snapshot)=>{
