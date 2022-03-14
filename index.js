@@ -659,30 +659,31 @@ app.post("/api/v1/transact", async(req, res)=>{
   try{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
-    datas.userid = decrypt(datas.userid);
+    let datas2 = datas.data;
+    datas2.userid = decrypt(datas.userid);
     let xarr = [];
     let send = [];
     let dataV = [];
-    data.ref("accounts").child(datas.userid).once('value', async(snap)=>{
-      for(let x in datas.items){
-        let k = decrypt(datas.items[x][1].key);
-        let firstIndex = datas.items[x][0];
-        let obj = datas[x][1];
-        if(!props.advance){
+    data.ref("accounts").child(datas2.userid).once('value', async(snap)=>{
+      for(let x in datas2.items){
+        let k = decrypt(datas2.items[x][1].key);
+        let firstIndex = datas2.items[x][0];
+        let obj = datas2.items[x][1];
+        if(!datas.advance){
           delete obj.date
         }else{
           obj.status = "Pending";
         }
         obj.key = decrypt(obj.key);
-        datas.items[x] = [firstIndex, obj];
+        datas2.items[x] = [firstIndex, obj];
         await data.ref("products").child(k).once("value", (snapshot)=>{
           let num = snapshot.val().numberofitems;
-          if(num - datas.items[x][1].amount>=0){
-            dataV.push([k, {numberofitems: num - datas.items[x][1].amount}, datas.items[x][0]]);
+          if(num - datas2.items[x][1].amount>=0){
+            dataV.push([k, {numberofitems: num - datas2.items[x][1].amount}, datas2.items[x][0]]);
             send.push(true);
           }else{
             send.push(false);
-            xarr.push(datas.items[x][1].title + " is too many, please reduce the amount to continue");
+            xarr.push(datas2.items[x][1].title + " is too many, please reduce the amount to continue");
           }
         })
       }
@@ -694,15 +695,15 @@ app.post("/api/v1/transact", async(req, res)=>{
       }else{
         for(let x of dataV){
           await data.ref("products").child(x[0]).update(x[1]);
-          await data.ref("cart").child(datas.userid).child(x[2]).remove();
+          await data.ref("cart").child(datas2.userid).child(x[2]).remove();
         }
-        datas.uid = snap.val().id;
-        datas.pstatus = "Not Paid"
-        datas.status = "Pending"
-        datas.phone = snap.val().phoneNumber;
-        datas.dateBought = new Date().toString();
-        let ref = props.advance?"reservation":"transaction"
-        let id  = data.ref(ref).push(datas);
+        datas2.uid = snap.val().id;
+        datas2.pstatus = "Not Paid"
+        datas2.status = "Pending"
+        datas2.phone = snap.val().phoneNumber;
+        datas2.dateBought = new Date().toString();
+        let ref = datas.advance?"reservation":"transaction"
+        let id  = data.ref(ref).push(datas2);
         data.ref(ref).child(id.key).update({id: id.key.substring(1).replaceAll("-", Math.floor(Math.random() * 10)).replaceAll("_", Math.floor(Math.random() * 10))}).then(() =>
         data.ref(ref).child(id.key).once("value", (s)=>{
           let obj = s.val();
