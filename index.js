@@ -657,10 +657,14 @@ app.post("/api/v1/cartNum", (req, res)=>{
 
 app.post("/api/v1/transact", async(req, res)=>{
   try{
+   
     req.body = decryptJSON(req.body.data)
+   
     let datas = req.body;
+   
     let datas2 = datas.data;
-    datas2.userid = decrypt(datas.userid);
+    datas2.userid = decrypt(datas2.userid);
+    
     let xarr = [];
     let send = [];
     let dataV = [];
@@ -702,7 +706,7 @@ app.post("/api/v1/transact", async(req, res)=>{
         datas2.status = "Pending"
         datas2.phone = snap.val().phoneNumber;
         datas2.dateBought = new Date().toString();
-        let ref = datas.advance?"reservation":"transaction"
+        let ref = datas.advance?"reservation":"transaction";
         let id  = data.ref(ref).push(datas2);
         data.ref(ref).child(id.key).update({id: id.key.substring(1).replaceAll("-", Math.floor(Math.random() * 10)).replaceAll("_", Math.floor(Math.random() * 10))}).then(() =>
         data.ref(ref).child(id.key).once("value", (s)=>{
@@ -771,6 +775,7 @@ app.post("/api/v1/getTransactions", (req, res)=>{
       snapshot.forEach((snap)=>{
           x.push([snap.key, snap.val()]);
       })
+      x.reverse();
       res.send(encryptJSON({
         data: x
       }))
