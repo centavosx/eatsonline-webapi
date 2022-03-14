@@ -1,4 +1,4 @@
-const fs = require("fs");
+
 const data = require("./firebase/firebasecon");
 const cors = require('cors');
 const express = require('express');
@@ -6,8 +6,6 @@ const app = express();
 const bodyParser = require('body-parser');
 const {encrypt, encryptJSON, decryptJSON, decrypt, generateCode, checkLastKey, email, sendProfileData} = require("./functions.js");
 const e = require("cors");
-const CryptoJS = require("crypto-js");
-const { DayPage } = require("twilio/lib/rest/bulkexports/v1/export/day");
 const port = process.env.PORT || 8001;
 
   app.use(cors());
@@ -657,14 +655,10 @@ app.post("/api/v1/cartNum", (req, res)=>{
 
 app.post("/api/v1/transact", async(req, res)=>{
   try{
-   
     req.body = decryptJSON(req.body.data)
-   
     let datas = req.body;
-   
     let datas2 = datas.data;
     datas2.userid = decrypt(datas2.userid);
-    
     let xarr = [];
     let send = [];
     let dataV = [];
@@ -814,6 +808,20 @@ app.get("/api/v1/category", (req, res)=>{
   }
 })
 
+app.post("/api/v1/cancelorder", (req,res) =>{
+  try{
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    datas.id = encrypt(datas.id);
+    data.ref(datas.ref).child(datas.id).update({reason: datas.reason, status: "Cancelled"}).then(()=>{
+      res.send(encryptJSON({
+        cancelled: true
+      }))
+    })
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
 app.listen(port, () => {
     console.log("app listening on port: ", port);
 })
