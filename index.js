@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const {encrypt, encryptJSON, decryptJSON, decrypt, generateCode, checkLastKey, email, sendProfileData} = require("./functions.js");
 const e = require("cors");
 const CryptoJS = require("crypto-js");
+const { DayPage } = require("twilio/lib/rest/bulkexports/v1/export/day");
 const port = process.env.PORT || 8001;
 
   app.use(cors());
@@ -753,7 +754,16 @@ app.post("/api/v1/getTransactions", (req, res)=>{
   try{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
-    datas.userid = decrypt(datas.userid);
+    datas.id = decrypt(datas.id);
+    data.ref(datas.transaction).orderByChild("userid").equalTo(datas.id).once('value', (snapshot)=>{
+      let x = [];
+      snapshot.forEach((snap)=>{
+          x.push([snap.key, snap.val()]);
+      })
+      res.send(encryptJSON({
+        data: x
+      }))
+    })
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
