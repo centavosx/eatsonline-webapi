@@ -661,7 +661,7 @@ app.post("/api/v1/transact", async(req, res)=>{
         await data.ref("products").child(k).once("value", (snapshot)=>{
           let num = snapshot.val().numberofitems;
           if(num - x[1].amount>=0){
-            dataV.push([k, {num: num - x[1].amount}]);
+            dataV.push([k, {numberofitems: num - x[1].amount}, x[0]]);
             send.push(true);
           }else{
             send.push(false);
@@ -677,19 +677,27 @@ app.post("/api/v1/transact", async(req, res)=>{
       }else{
         for(let x of dataV){
           await data.ref("products").child(x[0]).update(x[1]);
+          await data.ref("cart").child(datas.userid).child(x[2]).remove();
         }
         datas.uid = snap.val().id;
         datas.pstatus = "Not Paid"
         datas.status = "Pending"
         datas.phone = snap.val().phoneNumber;
         datas.dateBought = new Date().toString();
-        let id  = data.ref("transactions").push(datas);
-        let valofup = data.ref("transactions").child(id.key).update({id: id.key.substring(1)}).then(()=>{
-          res.send(encryptJSON({
-            completed: true,
-            val: valofup.val()
-          }))
+        let id  = data.ref("transaction").push(datas);
+        data.ref("transaction").child(id.key).update({id: id.key.substring(1).replaceAll("-", Math.floor(Math.random() * 10)).replaceAll("_", Math.floor(Math.random() * 10))}).then(() =>
+        data.ref("transaction").child(id.key).once("value", (s)=>{
+          let obj = s.val();
+          obj.name = snap.val().name;
+          res.send(
+            encryptJSON({
+              completed:true,
+              data: obj
+            })
+          );
+
         })
+        );
       }
     })
 
@@ -739,6 +747,19 @@ app.post("/api/v1/getTransactions", (req, res)=>{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.userid = decrypt(datas.userid);
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
+
+app.post("/api/v1/toPay", (req,res)=>{
+  try{
+    req.body = decryptJSON(req.body.data)
+    data.ref(req.body.data).once("value", (snapshot)=>{
+      res.send(encryptJSON({
+        data:snapshot.val()
+      }))
+    })
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
