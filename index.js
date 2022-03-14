@@ -813,10 +813,17 @@ app.post("/api/v1/cancelorder", (req,res) =>{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = encrypt(datas.id);
-    data.ref(datas.ref).child(datas.id).update({reason: datas.reason, status: "Cancelled"}).then(()=>{
-      res.send(encryptJSON({
-        cancelled: true
-      }))
+    data.ref(datas.ref).child(datas.key).update({reason: datas.reason, status: "Cancelled"}).then(()=>{
+      data.ref(datas.ref).orderByChild("userid").equalTo(datas.id).once("value", (snapshot)=>{
+        let x = [];
+        snapshot.forEach((snap)=>{
+            x.push([snap.key, snap.val()]);
+        })
+        x.reverse();
+        res.send(encryptJSON({
+          data: x
+        }))
+      });
     })
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
