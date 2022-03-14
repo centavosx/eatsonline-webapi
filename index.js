@@ -813,7 +813,6 @@ app.post("/api/v1/cancelorder", (req,res) =>{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
     datas.id = decrypt(datas.id);
-    datas.key =decrypt(datas.key);
     data.ref(datas.ref).child(datas.key).update({reason: datas.reason, status: "Cancelled"}).then(()=>{
       data.ref(datas.ref).orderByChild("userid").equalTo(datas.id).once("value", (snapshot)=>{
         let x = [];
