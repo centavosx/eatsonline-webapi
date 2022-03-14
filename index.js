@@ -232,9 +232,16 @@ app.post("/api/v1/address", (req, res)=>{
     try{  req.body = decryptJSON(req.body.data)
       let datas = req.body;
       datas.id = decrypt(datas.id);
-      data.ref("accounts").child(datas.id).child("addresses").push({address: datas.address, primary: false}).then(()=>{
-       sendProfileData(datas, res); 
-      })
+      data.ref("accounts").child(datas.id).child("addresses").orderByChild("primary").equalTo(true).once('value', (snapshot)=>{
+        
+        let o = false;
+        if(snapshot.val()==null){
+          o = true;
+        }
+        data.ref("accounts").child(datas.id).child("addresses").push({address: datas.address, primary: o}).then(()=>{
+          sendProfileData(datas, res); 
+        })
+      });
     }catch(e){
       res.status(500).send(encryptJSON({error: true, message: "Error"}));     
     }
