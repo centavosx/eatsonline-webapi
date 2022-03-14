@@ -798,6 +798,22 @@ app.post("/api/v1/toPay", (req,res)=>{
   }
 })
 
+app.get("/api/v1/category", (req, res)=>{
+  try{
+    data.ref("categories").once('value', (snapshot)=>{
+      let x =[];
+      snapshot.forEach((v)=>{
+        x.push(v.val().name);
+      })
+      res.send(encryptJSON({
+        data:x
+      }))
+    })
+  }catch(e){
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
+
 app.listen(port, () => {
     console.log("app listening on port: ", port);
 })
