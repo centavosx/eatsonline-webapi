@@ -664,16 +664,25 @@ app.post("/api/v1/transact", async(req, res)=>{
     let send = [];
     let dataV = [];
     data.ref("accounts").child(datas.userid).once('value', async(snap)=>{
-      for(let x of datas.items){
-        let k = decrypt(x[1].key);
+      for(let x in datas.items){
+        let k = decrypt(datas.items[x][1].key);
+        let firstIndex = datas.items[x][0];
+        let obj = datas[x][1];
+        if(!props.advance){
+          delete obj.date
+        }else{
+          obj.status = "Pending";
+        }
+        obj.key = decrypt(obj.key);
+        datas.items[x] = [firstIndex, obj];
         await data.ref("products").child(k).once("value", (snapshot)=>{
           let num = snapshot.val().numberofitems;
-          if(num - x[1].amount>=0){
-            dataV.push([k, {numberofitems: num - x[1].amount}, x[0]]);
+          if(num - datas.items[x][1].amount>=0){
+            dataV.push([k, {numberofitems: num - datas.items[x][1].amount}, datas.items[x][0]]);
             send.push(true);
           }else{
             send.push(false);
-            xarr.push(x[1].title + " is too many, please reduce the amount to continue");
+            xarr.push(datas.items[x][1].title + " is too many, please reduce the amount to continue");
           }
         })
       }
@@ -692,9 +701,10 @@ app.post("/api/v1/transact", async(req, res)=>{
         datas.status = "Pending"
         datas.phone = snap.val().phoneNumber;
         datas.dateBought = new Date().toString();
-        let id  = data.ref("transaction").push(datas);
-        data.ref("transaction").child(id.key).update({id: id.key.substring(1).replaceAll("-", Math.floor(Math.random() * 10)).replaceAll("_", Math.floor(Math.random() * 10))}).then(() =>
-        data.ref("transaction").child(id.key).once("value", (s)=>{
+        let ref = props.advance?"reservation":"transaction"
+        let id  = data.ref(ref).push(datas);
+        data.ref(ref).child(id.key).update({id: id.key.substring(1).replaceAll("-", Math.floor(Math.random() * 10)).replaceAll("_", Math.floor(Math.random() * 10))}).then(() =>
+        data.ref(ref).child(id.key).once("value", (s)=>{
           let obj = s.val();
           obj.name = snap.val().name;
           res.send(
