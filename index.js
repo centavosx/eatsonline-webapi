@@ -860,7 +860,7 @@ app.post("/api/v1/opennotif", async(req, res)=>{
   let what = decrypt(datas.what);
   let tid = decrypt(datas.id);
   let x = data.ref(what).child(tid).child('value');
-  res.send(x);
+  res.send(encryptJSON(x.val()));
 })
 app.listen(port, () => {
     console.log("app listening on port: ", port);
