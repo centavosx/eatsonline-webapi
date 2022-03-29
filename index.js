@@ -839,7 +839,6 @@ app.post("/api/v1/notif", async(req, res)=>{
     let snapshot = await data.ref("transaction").orderByChild("userid").equalTo(userid).once('value');
     let snapshot2 = await data.ref("reservation").orderByChild("userid").equalTo(userid).once('value');
     let x = [];
-    console.log("Dwaaw");
     snapshot.forEach((data)=>{
       x.push([[encrypt(data.key), encrypt("transaction")], data.val()]);
     })
@@ -859,7 +858,7 @@ app.post("/api/v1/opennotif", async(req, res)=>{
   let datas = req.body;
   let what = decrypt(datas.what);
   let tid = decrypt(datas.id);
-  let x = data.ref(what).child(tid).child('value');
+  let x = await data.ref(what).child(tid).once('value');
   res.send(encryptJSON(x.val()));
 })
 app.listen(port, () => {
