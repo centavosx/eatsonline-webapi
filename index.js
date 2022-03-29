@@ -834,20 +834,22 @@ app.post("/api/v1/notif", async(req, res)=>{
   try{
     req.body = decryptJSON(req.body.data)
     let datas = req.body;
+    
     let userid = decrypt(datas.id);
     let snapshot = await data.ref("transaction").orderByChild("userid").equalTo(userid).once('value');
     let snapshot2 = await data.ref("reservation").orderByChild("userid").equalTo(userid).once('value');
     let x = [];
-    
+    console.log("Dwaaw");
     snapshot.forEach((data)=>{
-      x.push([[encrypt(data.key), encrypt(what)], data.val()]);
+      x.push([[encrypt(data.key), encrypt("transaction")], data.val()]);
     })
     snapshot2.forEach((data)=>{
-      x.push([[encrypt(data.key), encrypt(what)], data.val()]);
+      x.push([[encrypt(data.key), encrypt("reservation")], data.val()]);
     })
-    
+    console.log(x);
     res.send(x);
-  }catch{
+  }catch(e){
+    console.log(e)
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
 })
