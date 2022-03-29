@@ -696,8 +696,8 @@ app.post("/api/v1/transact", async(req, res)=>{
           await data.ref("cart").child(datas2.userid).child(x[2]).remove();
         }
         datas2.uid = snap.val().id;
-        datas2.pstatus = "Not Paid"
-        datas2.status = "Pending"
+        datas2.pstatus = "Not Paid";
+        datas2.status = "Pending";
         datas2.phone = snap.val().phoneNumber;
         datas2.dateBought = new Date().toString();
         let ref = datas.advance?"reservation":"transaction";
@@ -828,6 +828,33 @@ app.post("/api/v1/cancelorder", (req,res) =>{
   }catch(e){
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
   }
+})
+
+app.post("/api/v1/notif", async(req, res)=>{
+  try{
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body;
+    let userid = decrypt(datas.id);
+    let what = datas.what;
+    let snapshot = await data.ref(what).orderByChild("userid").equalTo(userid).once('value');
+    let x = [];
+    
+    snapshot.forEach((data)=>{
+      x.push([[encrypt(data.key), encrypt(what)], data.val()]);
+    })
+    res.send(x);
+  }catch{
+    res.status(500).send(encryptJSON({error: true, message: "Error"}))
+  }
+})
+
+app.post("/api/v1/opennotif", async(req, res)=>{
+  req.body = decryptJSON(req.body.data)
+  let datas = req.body;
+  let what = decrypt(datas.what);
+  let tid = decrypt(datas.id);
+  let x = data.ref(what).child(tid).child('value');
+  res.send(x);
 })
 app.listen(port, () => {
     console.log("app listening on port: ", port);
