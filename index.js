@@ -847,7 +847,7 @@ app.post("/api/v1/notif", async(req, res)=>{
       x.push([[encrypt(data.key), encrypt("reservation")], data.val()]);
     })
     console.log(x);
-    res.send(x);
+    res.send(encryptJSON(x));
   }catch(e){
     console.log(e)
     res.status(500).send(encryptJSON({error: true, message: "Error"}))
