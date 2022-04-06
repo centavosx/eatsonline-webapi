@@ -1,6 +1,7 @@
-const data = require('./firebase/firebasecon')
+const { data, storage } = require('./firebase/firebasecon')
 const cors = require('cors')
 const express = require('express')
+const uploadD = require('express-fileupload')
 const app = express()
 const bodyParser = require('body-parser')
 const {
@@ -17,6 +18,7 @@ const e = require('cors')
 const port = process.env.PORT || 8001
 
 app.use(cors())
+app.use(uploadD())
 app.use(
   bodyParser.json({
     limit: '50mb',
@@ -47,19 +49,53 @@ app.use(function (err, req, res, next) {
   res.json(encryptJSON({ error: true, message: 'Error' }))
 })
 
+app.post('/api/v1/uploadreceipt', async (req, res) => {
+  try {
+    const datav = req.files
+    const body = decryptJSON(req.body.data.data)
+    let buffer = datav['image'].data
+    let imagename = body.imagename
+    let idn = decrypt(body.id)
+    let ref = storage.ref(`receipt/${idn}`)
+    try {
+      let dir = await ref.listAll()
+      dir.items.forEach(async (fileRef) => {
+        var dirRef = storage.ref(fileRef.fullPath)
+        let url = await dirRef.getDownloadURL()
+        let imgRef = storage.refFromURL(url)
+        await imgRef.delete()
+      })
+    } catch {}
+    await storage.ref(`receipt`).child(idn).child(imagename).put(buffer)
+    const url = await storage
+      .ref(`receipt/${idn}`)
+      .child(imagename)
+      .getDownloadURL()
+    await data.ref('transaction').child(idn).update({ receipt: url })
+    res.send(encryptJSON({ url: url }))
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
 app.post('/api/v1/recommended', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
     let snapshot = await data.ref('products').once('value')
     let x = []
+    console.log(req.body)
     snapshot.forEach((d) => {
       if (d.val().seller === datas.seller || d.val().type === datas.type) {
         x.push([encrypt(d.key), d.val()])
       } else {
-        let name = datas.title.split(' ')
-        for (let x of name) {
-          if (d.val().title.includes('x')) x.push([encrypt(d.key), d.val()])
+        if (datas.title !== d.val().title) {
+          let name = datas.title.split(' ')
+          for (let x of name) {
+            if (d.val().title.includes('x')) x.push([encrypt(d.key), d.val()])
+          }
         }
       }
     })
@@ -68,7 +104,8 @@ app.post('/api/v1/recommended', async (req, res) => {
         data: x,
       })
     )
-  } catch {
+  } catch (e) {
+    console.log(e)
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
@@ -977,8 +1014,8 @@ app.post('/api/v1/transact', async (req, res) => {
           datas2.phone = snap.val().phoneNumber
           datas2.dateBought = new Date().toString()
           let ref = datas.advance ? 'reservation' : 'transaction'
-          let id = data.ref(ref).push(datas2)
-          data
+          let id = await data.ref(ref).push(datas2)
+          await data
             .ref(ref)
             .child(id.key)
             .update({
@@ -987,21 +1024,21 @@ app.post('/api/v1/transact', async (req, res) => {
                 .replaceAll('-', Math.floor(Math.random() * 10))
                 .replaceAll('_', Math.floor(Math.random() * 10)),
             })
-            .then(() =>
-              data
-                .ref(ref)
-                .child(id.key)
-                .once('value', (s) => {
-                  let obj = s.val()
-                  obj.name = snap.val().name
-                  res.send(
-                    encryptJSON({
-                      completed: true,
-                      data: obj,
-                    })
-                  )
+
+          data
+            .ref(ref)
+            .child(id.key)
+            .once('value', (s) => {
+              let obj = s.val()
+              obj.name = snap.val().name
+              obj.iditem = encrypt(id.key)
+              res.send(
+                encryptJSON({
+                  completed: true,
+                  data: obj,
                 })
-            )
+              )
+            })
         }
       })
   } catch (e) {
@@ -1187,7 +1224,9 @@ app.post('/api/v1/opennotif', async (req, res) => {
   let what = decrypt(datas.what)
   let tid = decrypt(datas.id)
   let x = await data.ref(what).child(tid).once('value')
-  res.send(encryptJSON(x.val()))
+  let obj = x.val()
+  obj.iditem = datas.id
+  res.send(encryptJSON(obj))
 })
 app.listen(port, () => {
   console.log('app listening on port: ', port)
