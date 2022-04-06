@@ -55,11 +55,11 @@ app.post('/api/v1/recommended', async (req, res) => {
     let x = []
     snapshot.forEach((d) => {
       if (d.val().seller === datas.seller || d.val().type === datas.type) {
-        x.push(d)
+        x.push([encrypt(d.key), d.val()])
       } else {
         let name = datas.title.split(' ')
         for (let x of name) {
-          if (d.val().title.includes('x')) x.push(d)
+          if (d.val().title.includes('x')) x.push([encrypt(d.key), d.val()])
         }
       }
     })
