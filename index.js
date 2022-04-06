@@ -10,6 +10,7 @@ const {
   decryptJSON,
   decrypt,
   generateCode,
+  emailByUser,
   checkLastKey,
   email,
   sendProfileData,
@@ -49,14 +50,35 @@ app.use(function (err, req, res, next) {
   res.json(encryptJSON({ error: true, message: 'Error' }))
 })
 
+app.post('/api/v1/contactus', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    datas.date_created = new Date().toString()
+    let x = await emailByUser(
+      datas.name,
+      datas.email,
+      datas.message,
+      datas.date_created,
+      datas.subject
+    )
+    if (x) await data.ref('contactus').push(datas)
+    res.send(encryptJSON({ sent: x }))
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
 app.post('/api/v1/uploadreceipt', async (req, res) => {
   try {
     const datav = req.files
-    const body = decryptJSON(req.body.data.data)
+    const body = decryptJSON(req.body.data)
     let buffer = datav['image'].data
     let imagename = body.imagename
     let idn = decrypt(body.id)
-    let ref = storage.ref(`receipt/${idn}`)
+    let ref = storage.ref(`receipt/${body.what}/${idn}`)
     try {
       let dir = await ref.listAll()
       dir.items.forEach(async (fileRef) => {
@@ -66,14 +88,20 @@ app.post('/api/v1/uploadreceipt', async (req, res) => {
         await imgRef.delete()
       })
     } catch {}
-    await storage.ref(`receipt`).child(idn).child(imagename).put(buffer)
+    await storage
+      .ref(`receipt`)
+      .child(body.what)
+      .child(idn)
+      .child(imagename)
+      .put(buffer)
     const url = await storage
-      .ref(`receipt/${idn}`)
+      .ref(`receipt/${body.what}/${idn}`)
       .child(imagename)
       .getDownloadURL()
-    await data.ref('transaction').child(idn).update({ receipt: url })
+    await data.ref(what).child(idn).update({ receipt: url })
     res.send(encryptJSON({ url: url }))
-  } catch {
+  } catch (e) {
+    console.log(e)
     res
       .status(500)
       .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
@@ -1032,6 +1060,7 @@ app.post('/api/v1/transact', async (req, res) => {
               let obj = s.val()
               obj.name = snap.val().name
               obj.iditem = encrypt(id.key)
+              obj.what = ref
               res.send(
                 encryptJSON({
                   completed: true,
@@ -1226,6 +1255,7 @@ app.post('/api/v1/opennotif', async (req, res) => {
   let x = await data.ref(what).child(tid).once('value')
   let obj = x.val()
   obj.iditem = datas.id
+  obj.what = what
   res.send(encryptJSON(obj))
 })
 app.listen(port, () => {

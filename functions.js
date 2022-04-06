@@ -56,6 +56,33 @@ const checkLastKey = (what) => {
   })
 }
 
+const emailByUser = (name, em, message, date, subj) => {
+  const output = `
+  
+    <h5>From ${name}</h5>
+    <h5>Email: ${em}</h5>
+    <h5>Date: ${date}</h5>
+    <div style="height:auto;width:100%;padding:15px; background-color:lightgrey; border-radius: 5px;"><p style="font-style:italic">${message}</p><div>
+    <br/>
+    `
+  const mailOptions = {
+    from: em.toLowerCase(),
+    to: 'eats.onlne@gmail.com',
+    subject: subj,
+    html: output,
+  }
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error)
+        resolve(false)
+      } else {
+        resolve(true)
+      }
+    })
+  })
+}
+
 const email = (to, subject, code, name, expiration) => {
   const output = `
     <h1>Eats Online PH</h1>
@@ -139,6 +166,7 @@ module.exports = {
   generateCode,
   checkLastKey,
   email,
+  emailByUser,
   sendProfileData,
   encrypt,
   decrypt,
