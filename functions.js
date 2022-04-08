@@ -116,30 +116,36 @@ const email = (to, subject, code, name, expiration) => {
 }
 
 const sendProfileData = (datas, res) => {
-  data
-    .ref('accounts')
-    .orderByKey()
-    .equalTo(datas.id)
-    .once('value', (snapshot) => {
-      let object = {}
-      snapshot.forEach((snaps) => {
-        for (let key in snaps.val()) {
-          if (typeof datas.data === 'object') {
-            if (datas.data.includes(key)) {
-              if (key == 'addresses') {
-                object[key] = []
-                for (let address in snaps.val()[key]) {
-                  object[key].push([address, snaps.val()[key][address]])
+  try {
+    data
+      .ref('accounts')
+      .orderByKey()
+      .equalTo(datas.id)
+      .once('value', (snapshot) => {
+        let object = {}
+        snapshot.forEach((snaps) => {
+          for (let key in snaps.val()) {
+            if (typeof datas.data === 'object') {
+              if (datas.data.includes(key)) {
+                if (key == 'addresses') {
+                  object[key] = []
+                  for (let address in snaps.val()[key]) {
+                    object[key].push([address, snaps.val()[key][address]])
+                  }
+                } else {
+                  object[key] = snaps.val()[key]
                 }
-              } else {
-                object[key] = snaps.val()[key]
               }
             }
           }
-        }
+        })
+        res.send(encryptJSON(object))
       })
-      res.send(encryptJSON(object))
-    })
+  } catch {
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
 }
 
 const encrypt = (text) => {
