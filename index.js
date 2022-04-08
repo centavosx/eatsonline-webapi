@@ -98,7 +98,8 @@ app.post('/api/v1/uploadreceipt', async (req, res) => {
       .ref(`receipt/${body.what}/${idn}`)
       .child(imagename)
       .getDownloadURL()
-    await data.ref(what).child(idn).update({ receipt: url })
+
+    await data.ref(body.what).child(idn).update({ receipt: url })
     res.send(encryptJSON({ url: url }))
   } catch (e) {
     console.log(e)
