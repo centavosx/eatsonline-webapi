@@ -35,7 +35,7 @@ app.use(
   })
 )
 
-app.use(function (req, res, next) {
+app.use(function async(req, res, next) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader(
     'Access-Control-Allow-Methods',
@@ -50,7 +50,7 @@ app.use(function (err, req, res, next) {
   res.json(encryptJSON({ error: true, message: 'Error' }))
 })
 
-app.post('/api/v1/contactus', async (req, res) => {
+app.post('/api/v1/contactus', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -71,7 +71,7 @@ app.post('/api/v1/contactus', async (req, res) => {
   }
 })
 
-app.post('/api/v1/uploadreceipt', async (req, res) => {
+app.post('/api/v1/uploadreceipt', async(req, res) => {
   try {
     const datav = req.files
     const body = decryptJSON(req.body.data)
@@ -109,7 +109,7 @@ app.post('/api/v1/uploadreceipt', async (req, res) => {
   }
 })
 
-app.post('/api/v1/recommended', async (req, res) => {
+app.post('/api/v1/recommended', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -139,7 +139,7 @@ app.post('/api/v1/recommended', async (req, res) => {
   }
 })
 
-app.post('/api/v1/guest', async (req, res) => {
+app.post('/api/v1/guest', async(req, res) => {
   try {
     let date = new Date()
     const id = await checkLastKey('accounts')
@@ -170,7 +170,7 @@ app.post('/api/v1/guest', async (req, res) => {
   }
 })
 
-app.post('/api/v1/register', async (req, res) => {
+app.post('/api/v1/register', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -248,7 +248,7 @@ app.post('/api/v1/register', async (req, res) => {
   }
 })
 
-app.post('/api/v1/login', (req, res) => {
+app.post('/api/v1/login', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -293,7 +293,7 @@ app.post('/api/v1/login', (req, res) => {
   }
 })
 
-app.patch('/api/v1/reverify', (req, res) => {
+app.patch('/api/v1/reverify', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -336,7 +336,7 @@ app.patch('/api/v1/reverify', (req, res) => {
   }
 })
 
-app.patch('/api/v1/verify', (req, res) => {
+app.patch('/api/v1/verify', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -406,7 +406,7 @@ app.patch('/api/v1/verify', (req, res) => {
   }
 })
 
-app.post('/api/v1/address', (req, res) => {
+app.post('/api/v1/address', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -428,7 +428,7 @@ app.post('/api/v1/address', (req, res) => {
           .child('addresses')
           .push({ address: datas.address, primary: o })
           .then(() => {
-            sendProfileData(datas, res)
+            await sendProfileData(datas, res)
           })
       })
   } catch (e) {
@@ -436,7 +436,7 @@ app.post('/api/v1/address', (req, res) => {
   }
 })
 
-app.patch('/api/v1/address', (req, res) => {
+app.patch('/api/v1/address', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -449,7 +449,7 @@ app.patch('/api/v1/address', (req, res) => {
         .child(datas.addressId)
         .update({ address: datas.address })
         .then(() => {
-          sendProfileData(datas, res)
+          await sendProfileData(datas, res)
         })
     } else {
       data
@@ -474,7 +474,7 @@ app.patch('/api/v1/address', (req, res) => {
                   .child(datas.addressId)
                   .update({ address: datas.address, primary: datas.primary })
                   .then(() => {
-                    sendProfileData(datas, res)
+                    await sendProfileData(datas, res)
                   })
               })
           })
@@ -485,18 +485,18 @@ app.patch('/api/v1/address', (req, res) => {
   }
 })
 
-app.post('/api/v1/profileData', (req, res) => {
+app.post('/api/v1/profileData', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
     datas.id = decrypt(datas.id)
-    sendProfileData(datas, res)
+    await sendProfileData(datas, res)
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
 
-app.patch('/api/v1/profileData', (req, res) => {
+app.patch('/api/v1/profileData', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -506,14 +506,14 @@ app.patch('/api/v1/profileData', (req, res) => {
       .child(datas.id)
       .update(datas.updateData)
       .then(() => {
-        sendProfileData(datas, res)
+        await sendProfileData(datas, res)
       })
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
 
-app.post('/api/v1/search', (req, res) => {
+app.post('/api/v1/search', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -558,7 +558,7 @@ app.post('/api/v1/search', (req, res) => {
   }
 })
 
-app.post('/api/v1/singleproduct', (req, res) => {
+app.post('/api/v1/singleproduct', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -601,7 +601,7 @@ app.post('/api/v1/singleproduct', (req, res) => {
   }
 })
 
-app.post('/api/v1/getData', (req, res) => {
+app.post('/api/v1/getData', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -662,7 +662,7 @@ app.post('/api/v1/getData', (req, res) => {
   }
 })
 
-app.post('/api/v1/comment', (req, res) => {
+app.post('/api/v1/comment', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -724,7 +724,7 @@ app.post('/api/v1/comment', (req, res) => {
   }
 })
 
-app.post('/api/v1/addcart', (req, res) => {
+app.post('/api/v1/addcart', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -803,7 +803,7 @@ app.post('/api/v1/addcart', (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error', e: e }))
   }
 })
-app.delete('/api/v1/cart', async (req, res) => {
+app.delete('/api/v1/cart', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -862,7 +862,7 @@ app.delete('/api/v1/cart', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
-app.patch('/api/v1/cart', (req, res) => {
+app.patch('/api/v1/cart', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -887,7 +887,7 @@ app.patch('/api/v1/cart', (req, res) => {
   }
 })
 
-app.post('/api/v1/cart', (req, res) => {
+app.post('/api/v1/cart', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -943,7 +943,7 @@ app.post('/api/v1/cart', (req, res) => {
   }
 })
 
-app.patch('/api/v1/profileData', (req, res) => {
+app.patch('/api/v1/profileData', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -960,7 +960,7 @@ app.patch('/api/v1/profileData', (req, res) => {
   }
 })
 
-app.post('/api/v1/cartNum', (req, res) => {
+app.post('/api/v1/cartNum', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -980,7 +980,7 @@ app.post('/api/v1/cartNum', (req, res) => {
   }
 })
 
-app.post('/api/v1/transact', async (req, res) => {
+app.post('/api/v1/transact', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -1076,7 +1076,7 @@ app.post('/api/v1/transact', async (req, res) => {
   }
 })
 
-app.post('/api/v1/chat', (req, res) => {
+app.post('/api/v1/chat', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -1126,7 +1126,7 @@ app.post('/api/v1/chat', (req, res) => {
   }
 })
 
-app.post('/api/v1/getTransactions', (req, res) => {
+app.post('/api/v1/getTransactions', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -1152,7 +1152,7 @@ app.post('/api/v1/getTransactions', (req, res) => {
   }
 })
 
-app.post('/api/v1/toPay', (req, res) => {
+app.post('/api/v1/toPay', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     data.ref(req.body.data).once('value', (snapshot) => {
@@ -1167,7 +1167,7 @@ app.post('/api/v1/toPay', (req, res) => {
   }
 })
 
-app.get('/api/v1/category', (req, res) => {
+app.get('/api/v1/category', async(req, res) => {
   try {
     data.ref('categories').once('value', (snapshot) => {
       let x = []
@@ -1185,7 +1185,7 @@ app.get('/api/v1/category', (req, res) => {
   }
 })
 
-app.post('/api/v1/cancelorder', (req, res) => {
+app.post('/api/v1/cancelorder', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -1217,7 +1217,7 @@ app.post('/api/v1/cancelorder', (req, res) => {
   }
 })
 
-app.post('/api/v1/notif', async (req, res) => {
+app.post('/api/v1/notif', async(req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -1248,7 +1248,7 @@ app.post('/api/v1/notif', async (req, res) => {
   }
 })
 
-app.post('/api/v1/opennotif', async (req, res) => {
+app.post('/api/v1/opennotif', async(req, res) => {
   req.body = decryptJSON(req.body.data)
   let datas = req.body
   let what = decrypt(datas.what)

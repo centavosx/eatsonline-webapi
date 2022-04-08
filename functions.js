@@ -115,9 +115,9 @@ const email = (to, subject, code, name, expiration) => {
   })
 }
 
-const sendProfileData = (datas, res) => {
+const sendProfileData = async (datas, res) => {
   try {
-    data
+    await data
       .ref('accounts')
       .orderByKey()
       .equalTo(datas.id)
