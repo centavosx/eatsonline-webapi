@@ -1280,6 +1280,7 @@ io.on('connection', (client) => {
     })
   })
   client.on('notifications', (userid) => {
+    console.log('hello')
     data
       .ref('transaction')
       .orderByChild('userid')
