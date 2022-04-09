@@ -21,6 +21,7 @@ const {
   sendProfileData,
 } = require('./functions.js')
 const e = require('cors')
+const cli = require('nodemon/lib/cli')
 
 const port = process.env.PORT || 8001
 
@@ -1265,114 +1266,122 @@ app.post('/api/v1/opennotif', async (req, res) => {
   obj.what = what
   res.send(encryptJSON(obj))
 })
-const users = {}
+const chat = {}
+const notif = {}
 const products = {}
+
+data.ref('bank').on('value', (snapshot) => {
+  io.emit('bank', snapshot.val())
+})
+
+data.ref('gcash').on('value', (snapshot) => {
+  io.emit('gcash', snapshot.val())
+})
+
 io.on('connection', (client) => {
-  console.log(client.id, users)
-  client.on('user', (userid) => {
-    users[client.id] = [userid, decrypt(userid)]
-  })
-  client.on('qrcodes', () => {
-    data.ref('bank').on('value', (snapshot) => {
-      io.emit('bank', snapshot.val())
-    })
-    data.ref('gcash').on('value', (snapshot) => {
-      io.emit('gcash', snapshot.val())
-    })
-  })
   client.on('notifications', (userid) => {
-    console.log('hello')
-    data
-      .ref('transaction')
-      .orderByChild('userid')
-      .equalTo(decrypt(userid))
-      .on('value', (snapshot) => {
-        let x = []
-        let c = 0
-        snapshot.forEach((data) => {
-          if (data.val() !== 'Completed') {
-            c++
-          }
-          x.push([[encrypt(data.key), encrypt('transaction')], data.val()])
+    if (!notif[client.id]) {
+      notif[client.id] = [userid, decrypt(userid)]
+      data
+        .ref('transaction')
+        .orderByChild('userid')
+        .equalTo(decrypt(userid))
+        .on('value', (snapshot) => {
+          let x = []
+          let c = 0
+          snapshot.forEach((data) => {
+            if (data.val() !== 'Completed') {
+              c++
+            }
+            x.push([[encrypt(data.key), encrypt('transaction')], data.val()])
+          })
+          x.reverse()
+          io.emit(`notifcount/${notif[client.id][0]}`, c)
+          io.emit(`transact/${notif[client.id][0]}`, x)
         })
-        x.reverse()
-        io.emit(`notifcount/${users[client.id][0]}`, c)
-        io.emit(`transact/${users[client.id][0]}`, x)
-      })
-    data
-      .ref('reservation')
-      .orderByChild('userid')
-      .equalTo(decrypt(userid))
-      .on('value', (snapshot) => {
-        let x = []
-        let c = 0
-        snapshot.forEach((data) => {
-          if (data.val() !== 'Completed') {
-            c++
-          }
-          x.push([[encrypt(data.key), encrypt('reservation')], data.val()])
+      data
+        .ref('reservation')
+        .orderByChild('userid')
+        .equalTo(decrypt(userid))
+        .on('value', (snapshot) => {
+          let x = []
+          let c = 0
+          snapshot.forEach((data) => {
+            if (data.val() !== 'Completed') {
+              c++
+            }
+            x.push([[encrypt(data.key), encrypt('reservation')], data.val()])
+          })
+          x.reverse()
+          io.emit(`notifcount/${notif[client.id][0]}`, c)
+          io.emit(`advanced/${notif[client.id][0]}`, x)
         })
-        x.reverse()
-        io.emit(`notifcount/${users[client.id][0]}`, c)
-        io.emit(`advanced/${users[client.id][0]}`, x)
-      })
+    }
   })
   client.on('comments', (productid) => {
-    data
-      .ref('products')
-      .child(decrypt(productid))
-      .child('comments')
-      .on('value', (snapshot) => {
-        let x = []
-        snapshot.forEach((val) => {
-          if (val.val().id in snap.val()) {
-            let ob = val.val()
-            ob['name'] = snap.val()[val.val().id].name
-            ob['link'] = snap.val()[val.val().id].link
-            ob['email'] = snap.val()[val.val().id].email
-            x.push([val.key, ob])
-          }
+    if (!products[client.id]) {
+      products[client.id] = [productid, decrypt(productid)]
+      data
+        .ref('products')
+        .child(decrypt(productid))
+        .child('comments')
+        .on('value', (snapshot) => {
+          let x = []
+          snapshot.forEach((val) => {
+            if (val.val().id in snap.val()) {
+              let ob = val.val()
+              ob['name'] = snap.val()[val.val().id].name
+              ob['link'] = snap.val()[val.val().id].link
+              ob['email'] = snap.val()[val.val().id].email
+              x.push([val.key, ob])
+            }
+          })
+          io.emit(`productcomment/${products[client.id][0]}`, x)
         })
-        io.emit(`productcomment/${productid}`, x)
-      })
+    }
   })
   client.on('chat', (userid) => {
-    console.log(decrypt(userid))
-    data
-      .ref('chat')
-      .child(decrypt(userid))
-      .limitToLast(1)
-      .on('child_added', (snapshot) => {
-        console.log('hey')
-        io.emit(`newchat/${users[client.id][0]}`, [
-          snapshot.key,
-          snapshot.val(),
-        ])
-      })
-
-    data
-      .ref('chat')
-      .child(decrypt(userid))
-      .on('value', (snapshot) => {
-        let send = []
-        let unread = 0
-        snapshot.forEach((val) => {
-          if (val.val().who === 'admin' && !val.val().readbyu) {
-            unread++
-          }
-          send.push([val.key, val.val()])
+    if (!chat[client.id]) {
+      chat[client.id] = [userid, decrypt(userid)]
+      data
+        .ref('chat')
+        .child(decrypt(userid))
+        .limitToLast(1)
+        .on('child_added', (snapshot) => {
+          console.log('hey')
+          io.emit(`newchat/${chat[client.id][0]}`, [
+            snapshot.key,
+            snapshot.val(),
+          ])
         })
-        io.emit(`chatchanged/${users[client.id][0]}`, send)
-        io.emit(`unread/${users[client.id][0]}`, unread)
-      })
+
+      data
+        .ref('chat')
+        .child(decrypt(userid))
+        .on('value', (snapshot) => {
+          let send = []
+          let unread = 0
+          snapshot.forEach((val) => {
+            if (val.val().who === 'admin' && !val.val().readbyu) {
+              unread++
+            }
+            send.push([val.key, val.val()])
+          })
+          io.emit(`chatchanged/${chat[client.id][0]}`, send)
+          io.emit(`unread/${chat[client.id][0]}`, unread)
+        })
+    }
   })
-  client.on('disconnect', () => {
-    let id = users[client.id][1]
-    data.ref('chat').child(id).endAt().limitToLast(1).off()
-    data.ref('chat').child(id).off()
-    data.ref('reservation').orderByChild('userid').equalTo(id).off()
-    data.ref('transaction').orderByChild('userid').equalTo(id).off()
-    delete users[client.id]
+  client.on('disconnect', async () => {
+    let id = chat[client.id][1]
+    await data.ref('chat').child(id).endAt().limitToLast(1).off()
+    await data.ref('chat').child(id).off()
+    let id2 = notif[client.id][1]
+    await data.ref('reservation').orderByChild('userid').equalTo(id2).off()
+    await data.ref('transaction').orderByChild('userid').equalTo(id2).off()
+
+    delete chat[client.id]
+    delete notif[client.id]
   })
 })
 
