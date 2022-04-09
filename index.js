@@ -1266,6 +1266,7 @@ app.post('/api/v1/opennotif', async (req, res) => {
   res.send(encryptJSON(obj))
 })
 const users = {}
+const products = {}
 io.on('connection', (client) => {
   console.log(client.id, users)
   client.on('user', (userid) => {
@@ -1316,7 +1317,25 @@ io.on('connection', (client) => {
         io.emit(`advanced/${users[client.id][0]}`, x)
       })
   })
-
+  client.on('comments', (productid) => {
+    data
+      .ref('products')
+      .child(decrypt(productid))
+      .child('comments')
+      .on('value', (snapshot) => {
+        let x = []
+        snapshot.forEach((val) => {
+          if (val.val().id in snap.val()) {
+            let ob = val.val()
+            ob['name'] = snap.val()[val.val().id].name
+            ob['link'] = snap.val()[val.val().id].link
+            ob['email'] = snap.val()[val.val().id].email
+            x.push([val.key, ob])
+          }
+        })
+        io.emit(`productcomment/${productid}`, x)
+      })
+  })
   client.on('chat', (userid) => {
     console.log(decrypt(userid))
     data
