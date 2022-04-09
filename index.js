@@ -3,6 +3,11 @@ const cors = require('cors')
 const express = require('express')
 const uploadD = require('express-fileupload')
 const app = express()
+const server = require('http').createServer(app)
+// Pass a http.Server instance to the listen method
+const io = require('socket.io')(server)
+
+// The server should start listening
 const bodyParser = require('body-parser')
 const {
   encrypt,
@@ -16,6 +21,7 @@ const {
   sendProfileData,
 } = require('./functions.js')
 const e = require('cors')
+
 const port = process.env.PORT || 8001
 
 app.use(cors())
@@ -49,6 +55,8 @@ app.use(function async(req, res, next) {
 app.use(function (err, req, res, next) {
   res.json(encryptJSON({ error: true, message: 'Error' }))
 })
+
+//websockets
 
 app.post('/api/v1/contactus', async (req, res) => {
   try {
@@ -709,7 +717,6 @@ app.post('/api/v1/comment', async (req, res) => {
                 let ob = val.val()
 
                 ob['name'] = snap.val()[val.val().id].name
-                console.log(ob.name)
                 ob['link'] = snap.val()[val.val().id].link
                 ob['email'] = snap.val()[val.val().id].email
                 x.push([val.key, ob])
@@ -1240,7 +1247,6 @@ app.post('/api/v1/notif', async (req, res) => {
     snapshot2.forEach((data) => {
       x.push([[encrypt(data.key), encrypt('reservation')], data.val()])
     })
-    console.log(x)
     res.send(encryptJSON(x))
   } catch (e) {
     console.log(e)
@@ -1259,6 +1265,97 @@ app.post('/api/v1/opennotif', async (req, res) => {
   obj.what = what
   res.send(encryptJSON(obj))
 })
-app.listen(port, () => {
+const users = {}
+io.on('connection', (client) => {
+  console.log(client.id, users)
+  client.on('user', (userid) => {
+    users[client.id] = [userid, decrypt(userid)]
+  })
+  client.on('qrcodes', () => {
+    data.ref('bank').on('value', (snapshot) => {
+      io.emit('bank', snapshot.val())
+    })
+    data.ref('gcash').on('value', (snapshot) => {
+      io.emit('gcash', snapshot.val())
+    })
+  })
+  client.on('notifications', (userid) => {
+    data
+      .ref('transaction')
+      .orderByChild('userid')
+      .equalTo(decrypt(userid))
+      .on('value', (snapshot) => {
+        let x = []
+        let c = 0
+        snapshot.forEach((data) => {
+          if (data.val() !== 'Completed') {
+            c++
+          }
+          x.push([[encrypt(data.key), encrypt('transaction')], data.val()])
+        })
+        x.reverse()
+        io.emit(`notifcount/${users[client.id][0]}`, c)
+        io.emit(`transact/${users[client.id][0]}`, x)
+      })
+    data
+      .ref('reservation')
+      .orderByChild('userid')
+      .equalTo(decrypt(userid))
+      .on('value', (snapshot) => {
+        let x = []
+        let c = 0
+        snapshot.forEach((data) => {
+          if (data.val() !== 'Completed') {
+            c++
+          }
+          x.push([[encrypt(data.key), encrypt('reservation')], data.val()])
+        })
+        x.reverse()
+        io.emit(`notifcount/${users[client.id][0]}`, c)
+        io.emit(`advanced/${users[client.id][0]}`, x)
+      })
+  })
+
+  client.on('chat', (userid) => {
+    console.log(decrypt(userid))
+    data
+      .ref('chat')
+      .child(decrypt(userid))
+      .limitToLast(1)
+      .on('child_added', (snapshot) => {
+        console.log('hey')
+        io.emit(`newchat/${users[client.id][0]}`, [
+          snapshot.key,
+          snapshot.val(),
+        ])
+      })
+
+    data
+      .ref('chat')
+      .child(decrypt(userid))
+      .on('value', (snapshot) => {
+        let send = []
+        let unread = 0
+        snapshot.forEach((val) => {
+          if (val.val().who === 'admin' && !val.val().readbyu) {
+            unread++
+          }
+          send.push([val.key, val.val()])
+        })
+        io.emit(`chatchanged/${users[client.id][0]}`, send)
+        io.emit(`unread/${users[client.id][0]}`, unread)
+      })
+  })
+  client.on('disconnect', () => {
+    let id = users[client.id][1]
+    data.ref('chat').child(id).endAt().limitToLast(1).off()
+    data.ref('chat').child(id).off()
+    data.ref('reservation').orderByChild('userid').equalTo(id).off()
+    data.ref('transaction').orderByChild('userid').equalTo(id).off()
+    delete users[client.id]
+  })
+})
+
+server.listen(port, () => {
   console.log('app listening on port: ', port)
 })
