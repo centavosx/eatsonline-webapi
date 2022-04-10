@@ -1095,11 +1095,6 @@ app.post('/api/v1/chat', async (req, res) => {
         .once('value', (snapshot) => {
           let send = []
           snapshot.forEach((val) => {
-            data
-              .ref('chat')
-              .child(datas.id)
-              .child(val.key)
-              .update({ readbyu: true })
             send.push([val.key, val.val()])
           })
           res.send(
@@ -1268,9 +1263,7 @@ app.post('/api/v1/opennotif', async (req, res) => {
 const chat = {}
 const notif = {}
 const products = {}
-const ch = {
-  ch: false,
-}
+
 data.ref('bank').on('value', (snapshot) => {
   io.emit('bank', snapshot.val())
 })
@@ -1279,7 +1272,7 @@ data.ref('gcash').on('value', (snapshot) => {
   io.emit('gcash', snapshot.val())
 })
 
-io.on('connection', (client) => {
+io.on('connection', async (client) => {
   client.on('notifications', (userid) => {
     if (!notif[client.id]) {
       notif[client.id] = [userid, decrypt(userid)]
@@ -1342,9 +1335,18 @@ io.on('connection', (client) => {
         })
     }
   })
+  client.on('updateChat', async (userid) => {
+    let snapshot = await data.ref('chat').child(decrypt(userid)).once('value')
+    let value = snapshot.val()
+    for (let x in value) {
+      value[x].readbyu = true
+    }
+    await data.ref('chat').child(decrypt(userid)).set(value)
+  })
   client.on('chat', (userid) => {
     if (!chat[client.id]) {
       chat[client.id] = [userid, decrypt(userid)]
+
       data
         .ref('chat')
         .child(decrypt(userid))
