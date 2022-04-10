@@ -124,7 +124,6 @@ app.post('/api/v1/recommended', async (req, res) => {
     let datas = req.body
     let snapshot = await data.ref('products').once('value')
     let x = []
-    console.log(req.body)
     snapshot.forEach((d) => {
       if (d.val().seller === datas.seller || d.val().type === datas.type) {
         x.push([encrypt(d.key), d.val()])
@@ -1269,7 +1268,9 @@ app.post('/api/v1/opennotif', async (req, res) => {
 const chat = {}
 const notif = {}
 const products = {}
-
+const ch = {
+  ch: false,
+}
 data.ref('bank').on('value', (snapshot) => {
   io.emit('bank', snapshot.val())
 })
@@ -1318,15 +1319,16 @@ io.on('connection', (client) => {
         })
     }
   })
-  client.on('comments', (productid) => {
+  client.on('comments', async (productid) => {
     if (!products[client.id]) {
       products[client.id] = [productid, decrypt(productid)]
       data
         .ref('products')
         .child(decrypt(productid))
         .child('comments')
-        .on('value', (snapshot) => {
+        .on('value', async (snapshot) => {
           let x = []
+          let snap = await data.ref('accounts').once('value')
           snapshot.forEach((val) => {
             if (val.val().id in snap.val()) {
               let ob = val.val()
@@ -1348,7 +1350,6 @@ io.on('connection', (client) => {
         .child(decrypt(userid))
         .limitToLast(1)
         .on('child_added', (snapshot) => {
-          console.log('hey')
           io.emit(`newchat/${chat[client.id][0]}`, [
             snapshot.key,
             snapshot.val(),
@@ -1373,15 +1374,17 @@ io.on('connection', (client) => {
     }
   })
   client.on('disconnect', async () => {
-    let id = chat[client.id][1]
-    await data.ref('chat').child(id).endAt().limitToLast(1).off()
-    await data.ref('chat').child(id).off()
-    let id2 = notif[client.id][1]
-    await data.ref('reservation').orderByChild('userid').equalTo(id2).off()
-    await data.ref('transaction').orderByChild('userid').equalTo(id2).off()
+    try {
+      let id = chat[client.id][1]
+      await data.ref('chat').child(id).endAt().limitToLast(1).off()
+      await data.ref('chat').child(id).off()
+      let id2 = notif[client.id][1]
+      await data.ref('reservation').orderByChild('userid').equalTo(id2).off()
+      await data.ref('transaction').orderByChild('userid').equalTo(id2).off()
 
-    delete chat[client.id]
-    delete notif[client.id]
+      delete chat[client.id]
+      delete notif[client.id]
+    } catch {}
   })
 })
 
