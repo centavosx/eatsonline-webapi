@@ -492,7 +492,24 @@ app.patch('/api/v1/address', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
-
+app.delete('/api/v1/address', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    datas.id = decrypt(datas.id)
+    data
+      .ref('accounts')
+      .child(datas.id)
+      .child('addresses')
+      .child(datas.addressId)
+      .delete()
+      .then(async () => {
+        await sendProfileData(datas, res)
+      })
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
 app.post('/api/v1/profileData', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
