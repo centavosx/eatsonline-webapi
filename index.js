@@ -502,7 +502,7 @@ app.delete('/api/v1/address', async (req, res) => {
       .child(datas.id)
       .child('addresses')
       .child(datas.addressId)
-      .delete()
+      .remove()
       .then(async () => {
         await sendProfileData(datas, res)
       })
