@@ -828,59 +828,62 @@ app.post('/api/v1/addcart', async (req, res) => {
 })
 app.delete('/api/v1/cart', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
-    let datas = req.body
+    console.log(req.query.data)
+    req.query = decryptJSON(
+      JSON.parse(req.query.data.replaceAll(' ', '+')).data
+    )
+    let datas = req.query
+    console.log(datas)
     datas.id = decrypt(datas.id)
-    for (let x of data.keys) {
-      await data.ref('cart').child(datas.id).child(decrypt(x)).remove()
+    const sn = await data.ref('cart').child(datas.id).once('value')
+    let obj2 = sn.val()
+    for (let x in obj2) {
+      if (datas.keys.includes(x)) {
+        delete obj2[x]
+      }
     }
-    data.ref('products').once('value', (snapsnap) => {
-      data
-        .ref('cart')
-        .child(datas.id)
-        .once('value', (sn) => {
-          let obj2 = sn.val()
-          let keys = {}
-          for (let x in obj2) {
-            keys[obj2[x].key] = x
+    console.log(obj2)
+    await data.ref('cart').child(datas.id).set(obj2)
+    const snapsnap = await data.ref('products').once('value')
+    let keys = {}
+    for (let x in obj2) {
+      keys[obj2[x].key] = x
+    }
+    let x = []
+    snapsnap.forEach((s) => {
+      if (s.key in keys) {
+        let o = s.val()
+        o.key = encrypt(s.key)
+        o.date = obj2[keys[s.key]].date
+        o['amount'] = obj2[keys[s.key]].amount
+        if ('adv' in o) {
+          let value = []
+          for (let val in o.adv) {
+            value.push(o.adv[val].date)
           }
-          let x = []
-          snapsnap.forEach((s) => {
-            if (s.key in keys) {
-              let o = s.val()
-              o.key = encrypt(s.key)
-              o.date = obj2[keys[s.key]].date
-              o['amount'] = obj2[keys[s.key]].amount
-              if ('adv' in o) {
-                let value = []
-                for (let val in o.adv) {
-                  value.push(o.adv[val].date)
-                }
-                o.adv = value
-              }
-              if ('comments' in o) {
-                let avgrate = 0
-                let add = 0
-                for (let i in o.comments) {
-                  add += parseInt(o.comments[i].rating)
-                  avgrate++
-                }
-                o.comments = parseInt(add / avgrate)
-              } else {
-                o.comments = 0
-              }
-              x.push([keys[s.key], o])
-            }
-          })
-          res.send(
-            encryptJSON({
-              success: true,
-              data: x,
-              message: 'Cart Retrieved',
-            })
-          )
-        })
+          o.adv = value
+        }
+        if ('comments' in o) {
+          let avgrate = 0
+          let add = 0
+          for (let i in o.comments) {
+            add += parseInt(o.comments[i].rating)
+            avgrate++
+          }
+          o.comments = parseInt(add / avgrate)
+        } else {
+          o.comments = 0
+        }
+        x.push([keys[s.key], o])
+      }
     })
+    res.send(
+      encryptJSON({
+        success: true,
+        data: x,
+        message: 'Cart Retrieved',
+      })
+    )
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
@@ -1266,15 +1269,75 @@ app.post('/api/v1/notif', async (req, res) => {
 })
 
 app.post('/api/v1/opennotif', async (req, res) => {
-  req.body = decryptJSON(req.body.data)
-  let datas = req.body
-  let what = decrypt(datas.what)
-  let tid = decrypt(datas.id)
-  let x = await data.ref(what).child(tid).once('value')
-  let obj = x.val()
-  obj.iditem = datas.id
-  obj.what = what
-  res.send(encryptJSON(obj))
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    let what = decrypt(datas.what)
+    let tid = decrypt(datas.id)
+    let x = await data.ref(what).child(tid).once('value')
+    let obj = x.val()
+    obj.iditem = datas.id
+    obj.what = what
+    res.send(encryptJSON(obj))
+  } catch {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
+
+app.post('/api/v1/checkIfBought', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    
+    let datas = req.body
+    let id = decrypt(datas.id)
+    let productid = decrypt(datas.pid)
+    const snap = await data
+      .ref('transaction')
+      .orderByChild('userid')
+      .equalTo(id)
+      .once('value')
+    const snap2 = await data
+      .ref('reservation')
+      .orderByChild('userid')
+      .equalTo(id)
+      .once('value')
+    let check = false
+
+    for (let i in snap.val()) {
+      if (snap.val()[i].status === 'Completed')
+        for (let x of snap.val()[i].items) {
+          if (x[1].key === productid) {
+            check = true
+            break
+          }
+        }
+      if (check) {
+        break
+      }
+    }
+    if (!check) {
+      for (let i in snap2.val()) {
+        for (let x of snap2.val()[i].items) {
+          if (x[1].key === productid && x[1].status === 'Completed') {
+            check = true
+            break
+          }
+        }
+        if (check) {
+          break
+        }
+      }
+    }
+  
+    res.send(
+      encryptJSON({
+        check: check
+      })
+    )
+  } catch (e) {
+    console.log(e)
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
 })
 const chat = {}
 const notif = {}
