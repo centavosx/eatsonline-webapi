@@ -1361,10 +1361,15 @@ app.post('/api/v1/opennotif', async (req, res) => {
     let datas = req.body
     let what = decrypt(datas.what)
     let tid = decrypt(datas.id)
+    let uid = decrypt(datas.uid)
     let x = await data.ref(what).child(tid).once('value')
     let obj = x.val()
-    obj.iditem = datas.id
-    obj.what = what
+    if (x.val().userid === uid) {
+      obj.iditem = datas.id
+      obj.what = what
+    } else {
+      obj = {}
+    }
     res.send(encryptJSON(obj))
   } catch {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
@@ -1453,6 +1458,10 @@ io.on('connection', async (client) => {
             if (data.val() !== 'Completed') {
               c++
             }
+            io.emit(
+              `currtransact/${notif[client.id][0]}/${encrypt(data.key)}`,
+              data.val()
+            )
             x.push([[encrypt(data.key), encrypt('transaction')], data.val()])
           })
           x.reverse()
@@ -1473,6 +1482,7 @@ io.on('connection', async (client) => {
             x.push([[encrypt(data.key), encrypt('reservation')], data.val()])
           })
           x.reverse()
+          io.emit()
           io.emit(`notifcount/${notif[client.id][0]}`, c)
           io.emit(`advanced/${notif[client.id][0]}`, x)
         })
