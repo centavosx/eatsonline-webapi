@@ -80,6 +80,93 @@ app.post('/api/v1/contactus', async (req, res) => {
   }
 })
 
+app.delete('/api/v1/deleteprofileimage', async (req, res) => {
+  try {
+    const body = decryptJSON(
+      JSON.parse(req.query.data.replaceAll(' ', '+')).data
+    )
+    let idn = decrypt(body.id)
+    let ref = storage.ref(`accounts/${idn}/image`)
+    try {
+      let dir = await ref.listAll()
+      dir.items.forEach(async (fileRef) => {
+        var dirRef = storage.ref(fileRef.fullPath)
+        let url = await dirRef.getDownloadURL()
+        let imgRef = storage.refFromURL(url)
+        await imgRef.delete()
+      })
+    } catch {}
+    await data.ref('accounts').child(idn).update({ receipt: null })
+    res.send(encryptJSON({ deleted: true }))
+  } catch (e) {
+    console.log(e)
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+
+app.post('/api/v1/uploadprofileimage', async (req, res) => {
+  try {
+    const datav = req.files
+    const body = decryptJSON(req.body.data)
+    let buffer = datav['image'].data
+    let imagename = body.imagename
+    let idn = decrypt(body.id)
+    let ref = storage.ref(`accounts/${idn}/image`)
+    try {
+      let dir = await ref.listAll()
+      dir.items.forEach(async (fileRef) => {
+        var dirRef = storage.ref(fileRef.fullPath)
+        let url = await dirRef.getDownloadURL()
+        let imgRef = storage.refFromURL(url)
+        await imgRef.delete()
+      })
+    } catch {}
+    await storage
+      .ref(`accounts`)
+      .child(idn)
+      .child('image')
+      .child(imagename)
+      .put(buffer)
+    const url = await storage
+      .ref(`accounts/${idn}/image`)
+      .child(imagename)
+      .getDownloadURL()
+    await data.ref('accounts').child(idn).update({ receipt: url })
+    res.send(encryptJSON({ url: url }))
+  } catch (e) {
+    console.log(e)
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
+app.delete('/api/v1/deletereceipt', async (req, res) => {
+  try {
+    const body = decryptJSON(
+      JSON.parse(req.query.data.replaceAll(' ', '+')).data
+    )
+    let idn = decrypt(body.id)
+    let ref = storage.ref(`receipt/${body.what}/${idn}`)
+    try {
+      let dir = await ref.listAll()
+      dir.items.forEach(async (fileRef) => {
+        var dirRef = storage.ref(fileRef.fullPath)
+        let url = await dirRef.getDownloadURL()
+        let imgRef = storage.refFromURL(url)
+        await imgRef.delete()
+      })
+    } catch {}
+    await data.ref(body.what).child(idn).update({ receipt: url })
+    res.send(encryptJSON({ deleted: true }))
+  } catch (e) {
+    console.log(e)
+    res
+      .status(500)
+      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
+  }
+})
 app.post('/api/v1/uploadreceipt', async (req, res) => {
   try {
     const datav = req.files
@@ -1287,7 +1374,7 @@ app.post('/api/v1/opennotif', async (req, res) => {
 app.post('/api/v1/checkIfBought', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
-    
+
     let datas = req.body
     let id = decrypt(datas.id)
     let productid = decrypt(datas.pid)
@@ -1328,10 +1415,10 @@ app.post('/api/v1/checkIfBought', async (req, res) => {
         }
       }
     }
-  
+
     res.send(
       encryptJSON({
-        check: check
+        check: check,
       })
     )
   } catch (e) {
