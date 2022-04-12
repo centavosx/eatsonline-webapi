@@ -96,7 +96,7 @@ app.delete('/api/v1/deleteprofileimage', async (req, res) => {
         await imgRef.delete()
       })
     } catch {}
-    await data.ref('accounts').child(idn).update({ receipt: null })
+    await data.ref('accounts').child(idn).update({ img: null })
     res.send(encryptJSON({ deleted: true }))
   } catch (e) {
     console.log(e)
@@ -133,7 +133,7 @@ app.post('/api/v1/uploadprofileimage', async (req, res) => {
       .ref(`accounts/${idn}/image`)
       .child(imagename)
       .getDownloadURL()
-    await data.ref('accounts').child(idn).update({ receipt: url })
+    await data.ref('accounts').child(idn).update({ img: url })
     res.send(encryptJSON({ url: url }))
   } catch (e) {
     console.log(e)
@@ -820,7 +820,7 @@ app.post('/api/v1/comment', async (req, res) => {
                 let ob = val.val()
 
                 ob['name'] = snap.val()[val.val().id].name
-                ob['link'] = snap.val()[val.val().id].link
+                ob['img'] = snap.val()[val.val().id].img
                 ob['email'] = snap.val()[val.val().id].email
                 x.push([val.key, ob])
               }
@@ -1492,7 +1492,7 @@ io.on('connection', async (client) => {
             if (val.val().id in snap.val()) {
               let ob = val.val()
               ob['name'] = snap.val()[val.val().id].name
-              ob['link'] = snap.val()[val.val().id].link
+              ob['img'] = snap.val()[val.val().id].img
               ob['email'] = snap.val()[val.val().id].email
               x.push([val.key, ob])
             }
