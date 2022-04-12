@@ -915,12 +915,10 @@ app.post('/api/v1/addcart', async (req, res) => {
 })
 app.delete('/api/v1/cart', async (req, res) => {
   try {
-    console.log(req.query.data)
     req.query = decryptJSON(
       JSON.parse(req.query.data.replaceAll(' ', '+')).data
     )
     let datas = req.query
-    console.log(datas)
     datas.id = decrypt(datas.id)
     const sn = await data.ref('cart').child(datas.id).once('value')
     let obj2 = sn.val()
@@ -929,7 +927,6 @@ app.delete('/api/v1/cart', async (req, res) => {
         delete obj2[x]
       }
     }
-    console.log(obj2)
     await data.ref('cart').child(datas.id).set(obj2)
     const snapsnap = await data.ref('products').once('value')
     let keys = {}
@@ -1458,10 +1455,10 @@ io.on('connection', async (client) => {
             if (data.val() !== 'Completed') {
               c++
             }
-            io.emit(
-              `currtransact/${notif[client.id][0]}/${encrypt(data.key)}`,
-              data.val()
-            )
+            let ocopy = data.val()
+            ocopy.iditem = encrypt(data.key)
+            ocopy.what = 'transaction'
+            io.emit(`currtransact/${notif[client.id][0]}/${data.key}`, ocopy)
             x.push([[encrypt(data.key), encrypt('transaction')], data.val()])
           })
           x.reverse()
@@ -1479,6 +1476,13 @@ io.on('connection', async (client) => {
             if (data.val() !== 'Completed') {
               c++
             }
+            let ocopy = data.val()
+            ocopy.iditem = encrypt(data.key)
+            ocopy.what = 'reservation'
+            io.emit(
+              `currreserve/${notif[client.id][0]}/${encrypt(data.key)}`,
+              ocopy
+            )
             x.push([[encrypt(data.key), encrypt('reservation')], data.val()])
           })
           x.reverse()
