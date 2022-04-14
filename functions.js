@@ -36,7 +36,16 @@ const generateCode = () => {
   }
   return code
 }
-
+const generateResetCode = () => {
+  let alphs =
+    '*&^%$#@!ABCDEFGHIKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let code = ''
+  for (let i = 0; i < 20; i++) {
+    let x = Math.floor(Math.random() * 60 + 1)
+    code += alphs.charAt(x)
+  }
+  return code
+}
 const checkLastKey = (what) => {
   return new Promise((resolve, reject) => {
     data
@@ -71,6 +80,35 @@ const emailByUser = (name, em, message, date, subj) => {
     subject: subj,
     html: output,
   }
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error)
+        resolve(false)
+      } else {
+        resolve(true)
+      }
+    })
+  })
+}
+const resetpass = (to, code, name) => {
+  const output = `
+    <h1>Eats Online PH</h1>
+    <p>Good day Ma'am/Sir ${name},</p>
+    <i>Here is your password to login: <b><h3>${code}</h3></b><i>
+    <br/>
+
+    <br/>
+    <p>Best Wishes,</p>
+    <h4>Eats Online PH</h4>
+    `
+  const mailOptions = {
+    from: 'eats.onlne@gmail.com',
+    to: to,
+    subject: 'RESET PASSWORD',
+    html: output,
+  }
+
   return new Promise((resolve, reject) => {
     transporter.sendMail(mailOptions, function (error, info) {
       if (error) {
@@ -178,4 +216,6 @@ module.exports = {
   decrypt,
   encryptJSON,
   decryptJSON,
+  generateResetCode,
+  resetpass,
 }

@@ -6,7 +6,7 @@ const app = express()
 const server = require('http').createServer(app)
 // Pass a http.Server instance to the listen method
 const io = require('socket.io')(server)
-
+const sha256 = require('crypto-js/sha256')
 // The server should start listening
 const bodyParser = require('body-parser')
 const {
@@ -19,9 +19,12 @@ const {
   checkLastKey,
   email,
   sendProfileData,
+  generateResetCode,
+  resetpass,
 } = require('./functions.js')
 const e = require('cors')
 const cli = require('nodemon/lib/cli')
+const { accessSync } = require('fs')
 
 const port = process.env.PORT || 8001
 
@@ -204,9 +207,9 @@ app.post('/api/v1/uploadreceipt', async (req, res) => {
   }
 })
 
-app.post('/api/v1/recommended', async (req, res) => {
+app.get('/api/v1/recommended', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     let snapshot = await data.ref('products').once('value')
     let x = []
@@ -342,9 +345,9 @@ app.post('/api/v1/register', async (req, res) => {
   }
 })
 
-app.post('/api/v1/login', async (req, res) => {
+app.get('/api/v1/login', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     data
       .ref('accounts')
@@ -580,7 +583,7 @@ app.patch('/api/v1/address', async (req, res) => {
 })
 app.delete('/api/v1/address', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     datas.id = decrypt(datas.id)
     data
@@ -596,9 +599,9 @@ app.delete('/api/v1/address', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
-app.post('/api/v1/profileData', async (req, res) => {
+app.get('/api/v1/profileData', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     datas.id = decrypt(datas.id)
     await sendProfileData(datas, res)
@@ -624,9 +627,9 @@ app.patch('/api/v1/profileData', async (req, res) => {
   }
 })
 
-app.post('/api/v1/search', async (req, res) => {
+app.get('/api/v1/search', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     data
       .ref(datas.reference)
@@ -669,9 +672,9 @@ app.post('/api/v1/search', async (req, res) => {
   }
 })
 
-app.post('/api/v1/singleproduct', async (req, res) => {
+app.get('/api/v1/singleproduct', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     if (datas.id != null) {
       datas.id = decrypt(datas.id)
@@ -712,9 +715,9 @@ app.post('/api/v1/singleproduct', async (req, res) => {
   }
 })
 
-app.post('/api/v1/getData', async (req, res) => {
+app.get('/api/v1/getData', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     data
       .ref(datas.reference)
@@ -773,62 +776,69 @@ app.post('/api/v1/getData', async (req, res) => {
   }
 })
 
+app.get('/api/v1/comment', async (req, res) => {
+  try {
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
+    let datas = req.body
+    datas.id = decrypt(datas.id)
+    data.ref('accounts').once('value', (snap) => {
+      data
+        .ref('products')
+        .child(datas.id)
+        .child('comments')
+        .once('value', (snapshot) => {
+          let x = []
+          snapshot.forEach((val) => {
+            if (val.val().id in snap.val()) {
+              let ob = val.val()
+
+              ob['name'] = snap.val()[val.val().id].name
+              ob['img'] = snap.val()[val.val().id].img
+              ob['email'] = snap.val()[val.val().id].email
+              x.push([val.key, ob])
+            }
+          })
+          res.send(encryptJSON({ data: x }))
+        })
+    })
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
+
 app.post('/api/v1/comment', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
     datas.id = decrypt(datas.id)
 
-    if (!datas.get) {
-      datas.uid = decrypt(datas.uid)
-      data
-        .ref('accounts')
-        .orderByKey()
-        .equalTo(datas.uid)
-        .once('value', (snap) => {
-          if (snap.val() !== null) {
-            data
-              .ref('products')
-              .child(datas.id)
-              .child('comments')
-              .push({
-                date: new Date().toString(),
-                message: datas.message,
-                rating: datas.rate,
-                id: datas.uid,
-              })
-              .then(async () => {
-                res.send(
-                  encryptJSON({
-                    success: true,
-                    message: 'Comment posted!',
-                  })
-                )
-              })
-          }
-        })
-    } else {
-      data.ref('accounts').once('value', (snap) => {
-        data
-          .ref('products')
-          .child(datas.id)
-          .child('comments')
-          .once('value', (snapshot) => {
-            let x = []
-            snapshot.forEach((val) => {
-              if (val.val().id in snap.val()) {
-                let ob = val.val()
-
-                ob['name'] = snap.val()[val.val().id].name
-                ob['img'] = snap.val()[val.val().id].img
-                ob['email'] = snap.val()[val.val().id].email
-                x.push([val.key, ob])
-              }
+    datas.uid = decrypt(datas.uid)
+    data
+      .ref('accounts')
+      .orderByKey()
+      .equalTo(datas.uid)
+      .once('value', (snap) => {
+        if (snap.val() !== null) {
+          data
+            .ref('products')
+            .child(datas.id)
+            .child('comments')
+            .push({
+              date: new Date().toString(),
+              message: datas.message,
+              rating: datas.rate,
+              id: datas.uid,
             })
-            res.send(encryptJSON({ data: x }))
-          })
+            .then(async () => {
+              res.send(
+                encryptJSON({
+                  success: true,
+                  message: 'Comment posted!',
+                })
+              )
+            })
+        }
       })
-    }
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
@@ -997,9 +1007,9 @@ app.patch('/api/v1/cart', async (req, res) => {
   }
 })
 
-app.post('/api/v1/cart', async (req, res) => {
+app.get('/api/v1/cart', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     datas.id = decrypt(datas.id)
     data.ref('products').once('value', (snapsnap) => {
@@ -1070,9 +1080,9 @@ app.patch('/api/v1/profileData', async (req, res) => {
   }
 })
 
-app.post('/api/v1/cartNum', async (req, res) => {
+app.get('/api/v1/cartNum', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     datas.id = decrypt(datas.id)
     data
@@ -1185,55 +1195,60 @@ app.post('/api/v1/transact', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
-
+app.get('/api/v1/chat', async (req, res) => {
+  try {
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
+    let datas = req.body
+    datas.id = decrypt(datas.id)
+    data
+      .ref('chat')
+      .child(datas.id)
+      .once('value', (snapshot) => {
+        let send = []
+        snapshot.forEach((val) => {
+          send.push([val.key, val.val()])
+        })
+        res.send(
+          encryptJSON({
+            data: send,
+          })
+        )
+      })
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
 app.post('/api/v1/chat', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
     datas.id = decrypt(datas.id)
-    if (datas.what == 'get') {
-      data
-        .ref('chat')
-        .child(datas.id)
-        .once('value', (snapshot) => {
-          let send = []
-          snapshot.forEach((val) => {
-            send.push([val.key, val.val()])
-          })
-          res.send(
-            encryptJSON({
-              data: send,
-            })
-          )
-        })
-    } else {
-      let message = {
-        date: new Date().toString(),
-        message: datas.message,
-        readbya: false,
-        readbyu: true,
-        who: 'user',
-      }
-      data
-        .ref('chat')
-        .child(datas.id)
-        .push(message)
-        .then(async () => {
-          res.send(
-            encryptJSON({
-              sent: true,
-            })
-          )
-        })
+    let message = {
+      date: new Date().toString(),
+      message: datas.message,
+      readbya: false,
+      readbyu: true,
+      who: 'user',
     }
+    data
+      .ref('chat')
+      .child(datas.id)
+      .push(message)
+      .then(async () => {
+        res.send(
+          encryptJSON({
+            sent: true,
+          })
+        )
+      })
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
 
-app.post('/api/v1/getTransactions', async (req, res) => {
+app.get('/api/v1/getTransactions', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     datas.id = decrypt(datas.id)
     data
@@ -1257,9 +1272,9 @@ app.post('/api/v1/getTransactions', async (req, res) => {
   }
 })
 
-app.post('/api/v1/toPay', async (req, res) => {
+app.get('/api/v1/toPay', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     data.ref(req.body.data).once('value', (snapshot) => {
       res.send(
         encryptJSON({
@@ -1290,7 +1305,7 @@ app.get('/api/v1/category', async (req, res) => {
   }
 })
 
-app.post('/api/v1/cancelorder', async (req, res) => {
+app.patch('/api/v1/cancelorder', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
@@ -1322,9 +1337,9 @@ app.post('/api/v1/cancelorder', async (req, res) => {
   }
 })
 
-app.post('/api/v1/notif', async (req, res) => {
+app.get('/api/v1/notif', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
 
     let userid = decrypt(datas.id)
@@ -1352,9 +1367,9 @@ app.post('/api/v1/notif', async (req, res) => {
   }
 })
 
-app.post('/api/v1/opennotif', async (req, res) => {
+app.get('/api/v1/opennotif', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let datas = req.body
     let what = decrypt(datas.what)
     let tid = decrypt(datas.id)
@@ -1373,9 +1388,9 @@ app.post('/api/v1/opennotif', async (req, res) => {
   }
 })
 
-app.post('/api/v1/checkIfBought', async (req, res) => {
+app.get('/api/v1/checkIfBought', async (req, res) => {
   try {
-    req.body = decryptJSON(req.body.data)
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
 
     let datas = req.body
     let id = decrypt(datas.id)
@@ -1428,6 +1443,49 @@ app.post('/api/v1/checkIfBought', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
+app.patch('/api/v1/forgetPass', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    const snapshot = await data
+      .ref('accounts')
+      .orderByChild('email')
+      .equalTo(req.body.email)
+      .once('value')
+    if (snapshot.val() === null) {
+      res.send(
+        encryptJSON({
+          message: "This email doesn't exit",
+        })
+      )
+    } else {
+      snapshot.forEach(async (d) => {
+        const newpass = generateResetCode()
+        const ch = await resetpass(req.body.email, newpass, d.val().name)
+        if (ch) {
+          await data
+            .ref('accounts')
+            .child(d.key)
+            .update({ password: sha256(newpass).toString() })
+          res.send(
+            encryptJSON({
+              message: 'Password has been sent to your email',
+            })
+          )
+        } else {
+          res.send(
+            encryptJSON({
+              message: 'Failed',
+            })
+          )
+        }
+      })
+    }
+  } catch (e) {
+    console.log(e)
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
+
 const chat = {}
 const notif = {}
 const products = {}
