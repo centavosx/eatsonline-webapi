@@ -354,36 +354,45 @@ app.get('/api/v1/login', async (req, res) => {
       .orderByChild('email')
       .equalTo(datas.email)
       .once('value', (snapshot) => {
-        snapshot.forEach((x) => {
-          if (x.val().password === datas.password) {
-            if (x.val().verified) {
-              res.send(
-                encryptJSON({
-                  id: encrypt(x.key),
-                  name: x.val().name,
-                  login: true,
-                  message: 'Successful',
-                })
-              )
+        if (snapshot.val() !== null) {
+          snapshot.forEach((x) => {
+            if (x.val().password === datas.password) {
+              if (x.val().verified) {
+                res.send(
+                  encryptJSON({
+                    id: encrypt(x.key),
+                    name: x.val().name,
+                    login: true,
+                    message: 'Successful',
+                  })
+                )
+              } else {
+                res.send(
+                  encryptJSON({
+                    id: encrypt(x.key),
+                    name: x.val().name,
+                    login: false,
+                    message: 'Not verified',
+                  })
+                )
+              }
             } else {
               res.send(
                 encryptJSON({
-                  id: encrypt(x.key),
-                  name: x.val().name,
                   login: false,
-                  message: 'Not verified',
+                  message: 'Wrong password',
                 })
               )
             }
-          } else {
-            res.send(
-              encryptJSON({
-                login: false,
-                message: 'Wrong password',
-              })
-            )
-          }
-        })
+          })
+        } else {
+          res.send(
+            encryptJSON({
+              login: false,
+              message: "Email doesn't exist!",
+            })
+          )
+        }
       })
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))

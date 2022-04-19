@@ -97,7 +97,7 @@ const resetpass = (to, code, name) => {
     <p>Good day Ma'am/Sir ${name},</p>
     <i>Here is your password to login: <b><h3>${code}</h3></b><i>
     <br/>
-
+    <h2>NOTE: THIS PASSWORD IS TEMPORARY, CHANGE YOUR PASSWORD ONCE LOGGED IN.</h2>
     <br/>
     <p>Best Wishes,</p>
     <h4>Eats Online PH</h4>
