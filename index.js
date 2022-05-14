@@ -1716,96 +1716,125 @@ io.on('connection', async (client) => {
       await data.ref('chat').child(decrypt(userid)).set(value)
     } catch {}
   })
-  client.on('userinfocart', (userid) => {
-    if (!cart[decrypt(userid)]) {
-      cart[decrypt(userid)] = decrypt(userid)
-      data
-        .ref('cart')
-        .child(decrypt(userid))
-        .on(
-          'value',
-          async (sn) => {
-            try {
-              let v = []
-              sn.forEach((data) => {
-                v.push(data.val().key)
-              })
-              io.emit(`cart/${decrypt(userid)}`, v)
-            } catch {}
-          },
-          (err) => console.log(err)
-        )
+  client.on('userinfocart', async (userid) => {
+    const val = await data
+      .ref('accounts')
+      .orderByKey()
+      .equalTo(decrypt(userid))
+      .once('value')
+    if (val.numChildren()) {
+      if (!cart[decrypt(userid)]) {
+        cart[decrypt(userid)] = decrypt(userid)
+        data
+          .ref('cart')
+          .child(decrypt(userid))
+          .on(
+            'value',
+            async (sn) => {
+              try {
+                let v = []
+                sn.forEach((data) => {
+                  v.push(data.val().key)
+                })
+                io.emit(`cart/${decrypt(userid)}`, v)
+              } catch {}
+            },
+            (err) => console.log(err)
+          )
+      }
     }
   })
-  client.on('userinfo', (userid) => {
-    if (!userinfo[decrypt(userid)]) {
-      userinfo[decrypt(userid)] = decrypt(userid)
-      data
-        .ref('accounts') //<-----------------------------------------
-        .child(decrypt(userid))
-        .on(
-          'value',
-          async (snaps) => {
-            try {
-              let object = snaps.val()
-              for (let key in snaps.val()) {
-                if (key == 'addresses') {
-                  object[key] = []
-                  for (let address in snaps.val()[key]) {
-                    object[key].push([address, snaps.val()[key][address]])
+  client.on('userinfo', async (userid) => {
+    const val = await data
+      .ref('accounts')
+      .orderByKey()
+      .equalTo(decrypt(userid))
+      .once('value')
+    if (val.numChildren()) {
+      if (!userinfo[decrypt(userid)]) {
+        userinfo[decrypt(userid)] = decrypt(userid)
+        data
+          .ref('accounts') //<-----------------------------------------
+          .child(decrypt(userid))
+          .on(
+            'value',
+            async (snaps) => {
+              try {
+                let object = {}
+                for (let key in snaps.val()) {
+                  if (key === 'addresses') {
+                    object[key] = []
+                    for (let address in snaps.val()[key]) {
+                      object[key].push([address, snaps.val()[key][address]])
+                    }
+                  } else {
+                    object[key] = snaps.val()[key]
                   }
-                } else {
-                  object[key] = snaps.val()[key]
                 }
-              }
-              io.emit(`user/${decrypt(userid)}`, object)
-            } catch {}
-          },
-          (err) => console.log(err)
-        )
+                io.emit(`usercartadd/${decrypt(userid)}`, {
+                  name: object.name,
+                  addresses: object.addresses,
+                })
+                io.emit(`userhead/${decrypt(userid)}`, {
+                  name: object.name,
+                  img: object.img,
+                })
+                io.emit(`user/${decrypt(userid)}`, object)
+              } catch {}
+            },
+            (err) => console.log(err)
+          )
+      }
     }
   })
-  client.on('chat', (userid) => {
-    if (!chat[client.id]) {
-      chat[client.id] = [userid, decrypt(userid)]
-      data
-        .ref('chat')
-        .child(decrypt(userid))
-        .limitToLast(1)
-        .on(
-          'child_added',
-          (snapshot) => {
-            try {
-              io.emit(`newchat/${chat[client.id][0]}`, [
-                snapshot.key,
-                snapshot.val(),
-              ])
-            } catch {}
-          },
-          (err) => console.log(err)
-        )
+  client.on('chat', async (userid) => {
+    const val = await data
+      .ref('accounts')
+      .orderByKey()
+      .equalTo(decrypt(userid))
+      .once('value')
+    if (val.numChildren()) {
+      if (!chat[client.id]) {
+        chat[client.id] = [userid, decrypt(userid)]
+        data
+          .ref('chat')
+          .child(decrypt(userid))
+          .limitToLast(1)
+          .on(
+            'child_added',
+            (snapshot) => {
+              try {
+                io.emit(`newchat/${chat[client.id][0]}`, [
+                  snapshot.key,
+                  snapshot.val(),
+                ])
+              } catch {}
+            },
+            (err) => console.log(err)
+          )
 
-      data
-        .ref('chat')
-        .child(decrypt(userid))
-        .on(
-          'value',
-          (snapshot) => {
-            try {
-              let send = []
-              let unread = 0
-              snapshot.forEach((val) => {
-                if (val.val().who === 'admin' && !val.val().readbyu) {
-                  unread++
-                }
-                send.push([val.key, val.val()])
-              })
-              io.emit(`chatchanged/${chat[client.id][0]}`, send)
-              io.emit(`unread/${chat[client.id][0]}`, unread)
-            } catch {}
-          },
-          (err) => console.log(err)
-        )
+        data
+          .ref('chat')
+          .child(decrypt(userid))
+          .on(
+            'value',
+            (snapshot) => {
+              try {
+                let send = []
+                let unread = 0
+                snapshot.forEach((val) => {
+                  if (val.val().who === 'admin' && !val.val().readbyu) {
+                    unread++
+                  }
+                  send.push([val.key, val.val()])
+                })
+                io.emit(`chatchanged/${chat[client.id][0]}`, send)
+                io.emit(`unread/${chat[client.id][0]}`, unread)
+              } catch {}
+            },
+            (err) => console.log(err)
+          )
+      }
     }
   })
   client.on('disconnect', async () => {
