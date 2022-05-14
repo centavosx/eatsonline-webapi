@@ -1518,8 +1518,8 @@ data
     let featured = []
     let i = 0
     snapshot.forEach((snap) => {
+      let obj = snap.val()
       if (i >= snapshot.numChildren() - 6 && i <= snapshot.numChildren() - 0) {
-        let obj = snap.val()
         if ('comments' in obj) {
           let avgrate = 0
           let add = 0
