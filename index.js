@@ -1498,6 +1498,12 @@ app.get('/api/v1/cartItem', async (req, res) => {
   try {
     req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
     let id = body.id
+    const sn = await data.ref('cart').child(decrypt(id)).once('value')
+    let v = []
+    sn.forEach((data) => {
+      v.push(data.val().key)
+    })
+    res.send(encryptJSON({ data: v }))
   } catch (e) {
     console.log(e)
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
