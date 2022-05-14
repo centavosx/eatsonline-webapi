@@ -1381,12 +1381,15 @@ app.put('/api/v1/checkCartItems', async (req, res) => {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
     const prod = await data.ref('products').once('value')
+    let ch = {
+      checker: true,
+    }
     prod.forEach((v) => {
       if (v.key in datas) {
-        if (!(v.val().numberofitems >= datas[v.key])) res.send({ data: false })
+        if (!(v.val().numberofitems >= datas[v.key])) ch.checker = false
       }
     })
-    res.send({ data: true })
+    res.send({ data: ch.checker })
   } catch {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
