@@ -1506,7 +1506,7 @@ app.get('/api/v1/cartItem', async (req, res) => {
     res.send(encryptJSON({ data: v }))
   } catch (e) {
     console.log(e)
-    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+    res.status(500).send({ message: e.toString() })
   }
 })
 const chat = {}
