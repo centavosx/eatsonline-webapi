@@ -1376,6 +1376,22 @@ app.get('/api/v1/notif', async (req, res) => {
   }
 })
 
+app.put('/api/v1/checkCartItems', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    const prod = await data.ref('products').once('value')
+    prod.forEach((v) => {
+      if (v.key in datas) {
+        if (!(v.val().numberofitems >= datas[v.key])) res.send({ data: false })
+      }
+    })
+    res.send({ data: true })
+  } catch {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
+
 app.get('/api/v1/opennotif', async (req, res) => {
   try {
     req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
