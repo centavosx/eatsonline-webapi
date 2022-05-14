@@ -1499,6 +1499,17 @@ const chat = {}
 const notif = {}
 const products = {}
 
+data.ref('products').once('value', (snapshot) => {
+  snapshot.forEach((snap) => {
+    data
+      .ref('products')
+      .child(snap.key)
+      .on('value', (sn) => {
+        io.emit(snap.key, sn.val())
+      })
+  })
+})
+
 data
   .ref('products')
   .orderByChild('totalsold')
@@ -1525,7 +1536,6 @@ data
       x.push([encrypt(snap.key), obj])
       i++
     })
-
     x.reverse()
     io.emit('products', x)
     io.emit('featured', featured)
