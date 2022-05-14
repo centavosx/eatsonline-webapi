@@ -1118,6 +1118,7 @@ app.post('/api/v1/transact', async (req, res) => {
     let xarr = []
     let send = []
     let dataV = []
+
     data
       .ref('accounts')
       .child(datas2.userid)
@@ -1138,7 +1139,7 @@ app.post('/api/v1/transact', async (req, res) => {
             .child(k)
             .once('value', (snapshot) => {
               let num = snapshot.val().numberofitems
-              if (num - datas2.items[x][1].amount >= 0) {
+              if (num - datas2.items[x][1].amount >= 0 || datas.advance) {
                 dataV.push([
                   k,
                   { numberofitems: num - datas2.items[x][1].amount },
@@ -1163,7 +1164,8 @@ app.post('/api/v1/transact', async (req, res) => {
           )
         } else {
           for (let x of dataV) {
-            await data.ref('products').child(x[0]).update(x[1])
+            if (!datas.advance)
+              await data.ref('products').child(x[0]).update(x[1])
             await data.ref('cart').child(datas2.userid).child(x[2]).remove()
           }
           datas2.uid = snap.val().id
