@@ -1538,18 +1538,19 @@ data
     let i = 0
     snapshot.forEach((snap) => {
       let obj = snap.val()
-      if (i >= snapshot.numChildren() - 6 && i <= snapshot.numChildren() - 0) {
-        if ('comments' in obj) {
-          let avgrate = 0
-          let add = 0
-          for (let i in obj.comments) {
-            add += parseInt(obj.comments[i].rating)
-            avgrate++
-          }
-          obj.comments = parseInt(add / avgrate)
-        } else {
-          obj.comments = 0
+      if ('comments' in obj) {
+        let avgrate = 0
+        let add = 0
+        for (let i in obj.comments) {
+          add += parseInt(obj.comments[i].rating)
+          avgrate++
         }
+        obj.comments = parseInt(add / avgrate)
+      } else {
+        obj.comments = 0
+      }
+
+      if (i >= snapshot.numChildren() - 6 && i <= snapshot.numChildren() - 0) {
         featured.push([encrypt(snap.key), obj])
       }
       x.push([encrypt(snap.key), obj])
