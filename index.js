@@ -1616,6 +1616,7 @@ io.on('connection', async (client) => {
             try {
               let x = []
               let c = 0
+              let val = []
               snapshot.forEach((data) => {
                 if (data.val() !== 'Completed') {
                   c++
@@ -1631,8 +1632,11 @@ io.on('connection', async (client) => {
                   [encrypt(data.key), encrypt('transaction')],
                   data.val(),
                 ])
+                val.push([data.key, data.val()])
               })
               x.reverse()
+              val.reverse()
+              io.emit(`transaction-all/${decrypt(userid)}`, val)
               io.emit(`notifcount/${notif[client.id][0]}`, c)
               io.emit(`transact/${notif[client.id][0]}`, x)
             } catch {}
@@ -1649,6 +1653,7 @@ io.on('connection', async (client) => {
             try {
               let x = []
               let c = 0
+              let val = []
               snapshot.forEach((data) => {
                 if (data.val() !== 'Completed') {
                   c++
@@ -1664,9 +1669,12 @@ io.on('connection', async (client) => {
                   [encrypt(data.key), encrypt('reservation')],
                   data.val(),
                 ])
+                val.push([data.key, data.val()])
               })
               x.reverse()
-              io.emit()
+              val.reverse()
+              io.emit(`reservation-all/${decrypt(userid)}`, val)
+
               io.emit(`notifcount/${notif[client.id][0]}`, c)
               io.emit(`advanced/${notif[client.id][0]}`, x)
             } catch {}
