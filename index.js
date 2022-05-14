@@ -1499,6 +1499,38 @@ const chat = {}
 const notif = {}
 const products = {}
 
+data
+  .ref('products')
+  .orderByChild('totalsold')
+  .on('value', (snapshot) => {
+    let x = []
+    let featured = []
+    let i = 0
+    snapshot.forEach((snap) => {
+      if (i >= snapshot.numChildren() - 6 && i <= snapshot.numChildren() - 0) {
+        let obj = snap.val()
+        if ('comments' in obj) {
+          let avgrate = 0
+          let add = 0
+          for (let i in obj.comments) {
+            add += parseInt(obj.comments[i].rating)
+            avgrate++
+          }
+          obj.comments = parseInt(add / avgrate)
+        } else {
+          obj.comments = 0
+        }
+        featured.push([encrypt(snap.key), obj])
+      }
+      x.push([encrypt(snap.key), obj])
+      i++
+    })
+
+    x.reverse()
+    io.emit('products', x)
+    io.emit('featured', featured)
+  })
+
 data.ref('bank').on('value', (snapshot) => {
   io.emit('bank', snapshot.val())
 })
