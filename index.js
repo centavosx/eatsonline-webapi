@@ -1722,7 +1722,7 @@ io.on('connection', async (client) => {
       .orderByKey()
       .equalTo(decrypt(userid))
       .once('value')
-    if (val.numChildren()) {
+    if (val.numChildren() > 0) {
       if (!cart[decrypt(userid)]) {
         cart[decrypt(userid)] = decrypt(userid)
         data
@@ -1750,7 +1750,7 @@ io.on('connection', async (client) => {
       .orderByKey()
       .equalTo(decrypt(userid))
       .once('value')
-    if (val.numChildren()) {
+    if (val.numChildren() > 0) {
       if (!userinfo[decrypt(userid)]) {
         userinfo[decrypt(userid)] = decrypt(userid)
         data
@@ -1793,7 +1793,7 @@ io.on('connection', async (client) => {
       .orderByKey()
       .equalTo(decrypt(userid))
       .once('value')
-    if (val.numChildren()) {
+    if (val.numChildren() > 0) {
       if (!chat[client.id]) {
         chat[client.id] = [userid, decrypt(userid)]
         data
