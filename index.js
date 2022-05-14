@@ -1498,7 +1498,8 @@ app.patch('/api/v1/forgetPass', async (req, res) => {
 const chat = {}
 const notif = {}
 const products = {}
-
+const cart = {}
+const userinfo = {}
 data.ref('products').once('value', (snapshot) => {
   snapshot.forEach((snap) => {
     data
@@ -1652,6 +1653,50 @@ io.on('connection', async (client) => {
       value[x].readbyu = true
     }
     await data.ref('chat').child(decrypt(userid)).set(value)
+  })
+  client.on('userinfocart', (userid) => {
+    if (!cart[decrypt(userid)]) {
+      cart[decrypt(userid)] = decrypt(userid)
+      data
+        .ref('cart')
+        .child(decrypt(userid))
+        .on('value', async (sn) => {
+          const snapsnap = await data.ref('products').once('value')
+          let obj2 = sn.val()
+          let keys = {}
+          for (let x in obj2) {
+            keys[obj2[x].key] = x
+          }
+          let x = []
+          snapsnap.forEach((s) => {
+            if (s.key in keys) {
+              let o = s.val()
+              o.key = encrypt(s.key)
+              o['amount'] = obj2[keys[s.key]].amount
+              if ('adv' in o) {
+                let value = []
+                for (let val in o.adv) {
+                  value.push(o.adv[val].date)
+                }
+                o.adv = value
+              }
+              if ('comments' in o) {
+                let avgrate = 0
+                let add = 0
+                for (let i in o.comments) {
+                  add += parseInt(o.comments[i].rating)
+                  avgrate++
+                }
+                o.comments = parseInt(add / avgrate)
+              } else {
+                o.comments = 0
+              }
+              x.push([keys[s.key], o])
+            }
+          })
+          io.emit(`cart/${decrypt(userid)}`, x)
+        })
+    }
   })
   client.on('chat', (userid) => {
     if (!chat[client.id]) {
