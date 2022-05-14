@@ -1557,6 +1557,7 @@ data
       i++
     })
     x.reverse()
+    featured.reverse()
     io.emit('products', x)
     io.emit('featured', featured)
   })
