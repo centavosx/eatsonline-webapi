@@ -1682,10 +1682,7 @@ io.on('connection', async (client) => {
                 let ocopy = data.val()
                 ocopy.iditem = encrypt(data.key)
                 ocopy.what = 'reservation'
-                io.emit(
-                  `currreserve/${notif[client.id][0]}/${encrypt(data.key)}`,
-                  ocopy
-                )
+                io.emit(`currreserve/${notif[client.id][0]}/${data.key}`, ocopy)
                 x.push([
                   [encrypt(data.key), encrypt('reservation')],
                   data.val(),
