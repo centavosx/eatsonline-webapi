@@ -1497,7 +1497,7 @@ app.patch('/api/v1/forgetPass', async (req, res) => {
 app.get('/api/v1/cartItem', async (req, res) => {
   try {
     req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
-    let id = body.id
+    let id = req.body.id
     const sn = await data.ref('cart').child(decrypt(id)).once('value')
     let v = []
     sn.forEach((data) => {
