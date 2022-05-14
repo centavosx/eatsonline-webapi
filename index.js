@@ -1505,7 +1505,26 @@ data.ref('products').once('value', (snapshot) => {
       .ref('products')
       .child(snap.key)
       .on('value', (sn) => {
-        io.emit(snap.key, sn.val())
+        let obj = sn.val()
+        if ('adv' in obj) {
+          let value = []
+          for (let i in obj.adv) {
+            value.push(obj.adv[i].date)
+          }
+          obj.adv = value
+        }
+        if ('comments' in obj) {
+          let avgrate = 0
+          let add = 0
+          for (let i in obj.comments) {
+            add += parseInt(obj.comments[i].rating)
+            avgrate++
+          }
+          obj.comments = parseInt(add / avgrate)
+        } else {
+          obj.comments = 0
+        }
+        io.emit(snap.key, obj)
       })
   })
 })
