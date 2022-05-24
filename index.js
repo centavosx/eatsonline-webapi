@@ -858,8 +858,6 @@ app.post('/api/v1/newaddcart', async (req, res) => {
     let datas = req.body
     datas.id = decrypt(datas.id)
     datas.cartid = decrypt(datas.cartid)
-    datas.adv = decrypt(datas.adv)
-    datas.date = decrypt(datas.date) ?? null
     data
       .ref('cart')
       .orderByKey()
@@ -876,7 +874,7 @@ app.post('/api/v1/newaddcart', async (req, res) => {
                 obj['date'] = new Date().toString()
                 obj['advdate'] =
                   datas.date !== null ? new Date(datas.date) : null
-                obj['advance'] = datas.adv === 'true' || datas.adv === true
+                obj['advance'] = datas.adv
                 obj['key'] = datas.cartid
                 obj['amount'] = datas.amount
                 data
@@ -906,9 +904,7 @@ app.post('/api/v1/newaddcart', async (req, res) => {
             .once('value', (snapshot) => {
               let check = false
               snapshot.forEach((snap) => {
-                check =
-                  snap.val().advance ===
-                  (datas.adv === 'true' || datas.adv === true)
+                check = snap.val().advance === datas.adv
               })
               if (check)
                 res.send(
@@ -920,7 +916,7 @@ app.post('/api/v1/newaddcart', async (req, res) => {
               let obj = {}
               obj['date'] = new Date().toString()
               obj['advdate'] = datas.date !== null ? new Date(datas.date) : null
-              obj['advance'] = datas.adv === 'true' || datas.adv === true
+              obj['advance'] = datas.adv
               obj['key'] = datas.cartid
               obj['amount'] = datas.amount
               data
