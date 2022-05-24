@@ -852,6 +852,96 @@ app.post('/api/v1/comment', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
+app.post('/api/v1/newaddcart', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    datas.id = decrypt(datas.id)
+    datas.cartid = decrypt(datas.cartid)
+    datas.adv = decrypt(datas.adv)
+    datas.date = decrypt(datas.date) ?? null
+    data
+      .ref('cart')
+      .orderByKey()
+      .equalTo(datas.id)
+      .once('value', (snapshot) => {
+        if (snapshot.val() === null) {
+          data
+            .ref('accounts')
+            .orderByKey()
+            .equalTo(datas.id)
+            .once('value', (snap2) => {
+              if (snap2.val() !== null) {
+                let obj = {}
+                obj['date'] = new Date().toString()
+                obj['advdate'] =
+                  datas.date !== null ? new Date(datas.date) : null
+                obj['advance'] = datas.adv === 'true' || datas.adv === true
+                obj['key'] = datas.cartid
+                obj['amount'] = datas.amount
+                data
+                  .ref('cart')
+                  .child(datas.id)
+                  .push(obj)
+                  .then(async () => {
+                    res.send(
+                      encryptJSON({
+                        added: true,
+                        message: 'Successfully added to Cart',
+                      })
+                    )
+                  })
+              } else {
+                res
+                  .status(500)
+                  .send(encryptJSON({ error: true, message: 'Error', e: e }))
+              }
+            })
+        } else {
+          data
+            .ref('cart')
+            .child(datas.id)
+            .orderByChild('key')
+            .equalTo(datas.cartid)
+            .once('value', (snapshot) => {
+              let check = false
+              snapshot.forEach((snap) => {
+                check =
+                  snap.val().advance ===
+                  (datas.adv === 'true' || datas.adv === true)
+              })
+              if (check)
+                res.send(
+                  encryptJSON({
+                    added: false,
+                    message: 'Already in cart!',
+                  })
+                )
+              let obj = {}
+              obj['date'] = new Date().toString()
+              obj['advdate'] = datas.date !== null ? new Date(datas.date) : null
+              obj['advance'] = datas.adv === 'true' || datas.adv === true
+              obj['key'] = datas.cartid
+              obj['amount'] = datas.amount
+              data
+                .ref('cart')
+                .child(datas.id)
+                .push(obj)
+                .then(async () => {
+                  res.send(
+                    encryptJSON({
+                      added: true,
+                      message: 'Successfully added to Cart',
+                    })
+                  )
+                })
+            })
+        }
+      })
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error', e: e }))
+  }
+})
 
 app.post('/api/v1/addcart', async (req, res) => {
   try {
