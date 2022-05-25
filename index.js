@@ -1078,6 +1078,102 @@ app.delete('/api/v1/cart', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
+
+app.delete('/api/v1/newcart', async (req, res) => {
+  try {
+    req.query = decryptJSON(
+      JSON.parse(req.query.data.replaceAll(' ', '+')).data
+    )
+    let datas = req.query
+    datas.id = decrypt(datas.id)
+    datas.adv = datas.adv === 'true' || datas.adv === true
+    const sn = await data.ref('cart').child(datas.id).once('value')
+    let obj2 = sn.val()
+    for (let x in obj2) {
+      if (datas.keys.includes(x)) {
+        delete obj2[x]
+      }
+    }
+    await data.ref('cart').child(datas.id).set(obj2)
+    const snapsnap = await data.ref('products').once('value')
+    let keys = {}
+    for (let x in obj2) {
+      if (obj2[x].advance === datas.adv) keys[obj2[x].key] = x
+    }
+    let x = []
+    snapsnap.forEach((s) => {
+      if (s.key in keys) {
+        let o = s.val()
+        o.key = encrypt(s.key)
+        o.date = obj2[keys[s.key]].date
+        o['amount'] = obj2[keys[s.key]].amount
+        if ('adv' in o) {
+          let value = []
+          for (let val in o.adv) {
+            value.push(o.adv[val].date)
+          }
+          o.adv = value
+        }
+        if ('comments' in o) {
+          let avgrate = 0
+          let add = 0
+          for (let i in o.comments) {
+            add += parseInt(o.comments[i].rating)
+            avgrate++
+          }
+          o.comments = parseInt(add / avgrate)
+        } else {
+          o.comments = 0
+        }
+        x.push([keys[s.key], o])
+      }
+    })
+    res.send(
+      encryptJSON({
+        success: true,
+        data: x,
+        message: 'Cart Retrieved',
+      })
+    )
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
+
+app.patch('/api/v1/newcart', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    datas.id = decrypt(datas.id)
+    const sn = await data.ref('cart').child(datas.id).once('value')
+    let obj2 = sn.val()
+    let dataOBJ = datas.data
+    for (let i in dataOBJ) {
+      dataOBJ[i].key = decrypt(dataOBJ[i].key)
+    }
+    for (let x in obj2) {
+      if (x in dataOBJ) {
+        obj2[x] = dataOBJ[x]
+      }
+    }
+
+    data
+      .ref('cart')
+      .child(datas.id)
+      .set(obj2)
+      .then(async () =>
+        res.send(
+          encryptJSON({
+            success: true,
+            message: 'Cart Retrieved',
+          })
+        )
+      )
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
+
 app.patch('/api/v1/cart', async (req, res) => {
   try {
     req.body = decryptJSON(req.body.data)
