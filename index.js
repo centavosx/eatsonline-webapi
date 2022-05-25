@@ -1283,7 +1283,7 @@ app.get('/api/v1/newcart', async (req, res) => {
                 }
                 o.adv = value
               }
-              if (datas.adv) o.selectedDate = obj2[keys[s.key]].advdate
+              if (datas.adv) o.date = obj2[keys[s.key]].advdate
               if ('comments' in o) {
                 let avgrate = 0
                 let add = 0
