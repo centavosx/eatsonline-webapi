@@ -2014,10 +2014,13 @@ io.on('connection', async (client) => {
             async (sn) => {
               try {
                 let v = []
+                let v2 = []
                 sn.forEach((data) => {
                   v.push(data.val().key)
+                  v2.push({ id: data.val().key, advance: data.val().advance })
                 })
                 io.emit(`cart/${decrypt(userid)}`, v)
+                io.emit(`newcart/${decrypt(userid)}`, v2)
               } catch {}
             },
             (err) => console.log(err)
