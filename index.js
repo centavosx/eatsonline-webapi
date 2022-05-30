@@ -1587,6 +1587,37 @@ app.patch('/api/v1/cancelorder', async (req, res) => {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
 })
+app.patch('/api/v1/newcancelorder', async (req, res) => {
+  try {
+    req.body = decryptJSON(req.body.data)
+    let datas = req.body
+    datas.id = decrypt(datas.id)
+    data
+      .ref(datas.ref)
+      .child(datas.key)
+      .update({ reason: datas.reason, request: true })
+      .then(async () => {
+        data
+          .ref(datas.ref)
+          .orderByChild('userid')
+          .equalTo(datas.id)
+          .once('value', (snapshot) => {
+            let x = []
+            snapshot.forEach((snap) => {
+              x.push([snap.key, snap.val()])
+            })
+            x.reverse()
+            res.send(
+              encryptJSON({
+                data: x,
+              })
+            )
+          })
+      })
+  } catch (e) {
+    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
+  }
+})
 
 app.get('/api/v1/notif', async (req, res) => {
   try {
