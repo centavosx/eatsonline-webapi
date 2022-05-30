@@ -1770,6 +1770,21 @@ app.get('/api/v1/cartItem', async (req, res) => {
     res.status(500).send({ message: e.toString() })
   }
 })
+app.get('/api/v1/newcartItem', async (req, res) => {
+  try {
+    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
+    let id = req.body.id
+    const sn = await data.ref('cart').child(decrypt(id)).once('value')
+    let v = []
+    sn.forEach((data) => {
+      v.push({ id: data.val().key, advance: data.val().advance })
+    })
+    res.send(encryptJSON({ data: v }))
+  } catch (e) {
+    console.log(e)
+    res.status(500).send({ message: e.toString() })
+  }
+})
 const chat = {}
 const notif = {}
 const products = {}
