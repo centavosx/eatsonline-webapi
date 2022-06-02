@@ -23,8 +23,6 @@ const {
   resetpass,
 } = require('./functions.js')
 const e = require('cors')
-const cli = require('nodemon/lib/cli')
-const { accessSync } = require('fs')
 
 const port = process.env.PORT || 8001
 
@@ -83,32 +81,6 @@ app.post('/api/v1/contactus', async (req, res) => {
   }
 })
 
-app.delete('/api/v1/deleteprofileimage', async (req, res) => {
-  try {
-    const body = decryptJSON(
-      JSON.parse(req.query.data.replaceAll(' ', '+')).data
-    )
-    let idn = decrypt(body.id)
-    let ref = storage.ref(`accounts/${idn}/image`)
-    try {
-      let dir = await ref.listAll()
-      dir.items.forEach(async (fileRef) => {
-        var dirRef = storage.ref(fileRef.fullPath)
-        let url = await dirRef.getDownloadURL()
-        let imgRef = storage.refFromURL(url)
-        await imgRef.delete()
-      })
-    } catch {}
-    await data.ref('accounts').child(idn).update({ img: null })
-    res.send(encryptJSON({ deleted: true }))
-  } catch (e) {
-    console.log(e)
-    res
-      .status(500)
-      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
-  }
-})
-
 app.post('/api/v1/uploadprofileimage', async (req, res) => {
   try {
     const datav = req.files
@@ -138,31 +110,6 @@ app.post('/api/v1/uploadprofileimage', async (req, res) => {
       .getDownloadURL()
     await data.ref('accounts').child(idn).update({ img: url })
     res.send(encryptJSON({ url: url }))
-  } catch (e) {
-    console.log(e)
-    res
-      .status(500)
-      .send(encryptJSON({ ch: false, error: true, message: 'Error' }))
-  }
-})
-app.delete('/api/v1/deletereceipt', async (req, res) => {
-  try {
-    const body = decryptJSON(
-      JSON.parse(req.query.data.replaceAll(' ', '+')).data
-    )
-    let idn = decrypt(body.id)
-    let ref = storage.ref(`receipt/${body.what}/${idn}`)
-    try {
-      let dir = await ref.listAll()
-      dir.items.forEach(async (fileRef) => {
-        var dirRef = storage.ref(fileRef.fullPath)
-        let url = await dirRef.getDownloadURL()
-        let imgRef = storage.refFromURL(url)
-        await imgRef.delete()
-      })
-    } catch {}
-    await data.ref(body.what).child(idn).update({ receipt: url })
-    res.send(encryptJSON({ deleted: true }))
   } catch (e) {
     console.log(e)
     res
@@ -630,51 +577,6 @@ app.patch('/api/v1/profileData', async (req, res) => {
       .update(datas.updateData)
       .then(async () => {
         await sendProfileData(datas, res)
-      })
-  } catch (e) {
-    res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
-  }
-})
-
-app.get('/api/v1/search', async (req, res) => {
-  try {
-    req.body = decryptJSON(JSON.parse(req.query.data.replaceAll(' ', '+')).data)
-    let datas = req.body
-    data
-      .ref(datas.reference)
-      .orderByChild(datas.data)
-      .startAt(datas.value.toUpperCase())
-      .endAt(datas.value.toLowerCase() + '\uf8ff')
-      .once('value', (snapshot) => {
-        let x = []
-        snapshot.forEach((snap) => {
-          if (
-            snap
-              .val()
-              [datas.data].toLowerCase()
-              .includes(datas.value.toLowerCase())
-          ) {
-            let obj = snap.val()
-            if ('comments' in obj) {
-              let avgrate = 0
-              let add = 0
-              for (let i in obj.comments) {
-                add += parseInt(obj.comments[i].rating)
-                avgrate++
-              }
-              obj.comments = parseInt(add / avgrate)
-            } else {
-              obj.comments = 0
-            }
-            x.push([encrypt(snap.key), obj])
-          }
-        })
-        res.send(
-          encryptJSON({
-            search: true,
-            data: x,
-          })
-        )
       })
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
