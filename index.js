@@ -1494,28 +1494,15 @@ app.patch('/api/v1/newcancelorder', async (req, res) => {
     req.body = decryptJSON(req.body.data)
     let datas = req.body
     datas.id = decrypt(datas.id)
-    data
+    await data
       .ref(datas.ref)
       .child(datas.key)
-      .update({ reason: datas.reason, request: true })
-      .then(async () => {
-        data
-          .ref(datas.ref)
-          .orderByChild('userid')
-          .equalTo(datas.id)
-          .once('value', (snapshot) => {
-            let x = []
-            snapshot.forEach((snap) => {
-              x.push([snap.key, snap.val()])
-            })
-            x.reverse()
-            res.send(
-              encryptJSON({
-                data: x,
-              })
-            )
-          })
+      .update({ reason: datas.reason, request: datas.request })
+    res.send(
+      encryptJSON({
+        update: true,
       })
+    )
   } catch (e) {
     res.status(500).send(encryptJSON({ error: true, message: 'Error' }))
   }
